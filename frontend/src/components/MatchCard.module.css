@@ -1,0 +1,238 @@
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 18px;
+  padding: 6px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.fecha {
+  font-size: 12px;
+  color: var(--texto-secundario);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.estrella {
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  background: transparent;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.abrir {
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--texto);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.equipos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.nombre {
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  font-size: 22px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.goles {
+  font-family: var(--fuente-titulo);
+  font-weight: 800;
+  font-size: 24px;
+}
+.chipLocal,
+.chipVisita {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 3px 7px;
+  flex-shrink: 0;
+}
+.chipLocal {
+  color: var(--acento-texto-claro);
+  background: var(--acento-fondo-2);
+}
+.chipVisita {
+  color: var(--texto-secundario);
+  background: var(--fondo-app);
+}
+.franja {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 10px 12px;
+  width: 100%;
+  border: 1px solid;
+}
+.franjaTextos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.franjaTitulo {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.franjaDerecha {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.franjaCuota {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--acento-texto-claro);
+}
+.franjaPick {
+  font-size: 14px;
+  font-weight: 500;
+}
+.franjaPct {
+  font-family: var(--fuente-titulo);
+  font-weight: 800;
+  font-size: 24px;
+}
+.verde {
+  background: var(--verde-fondo);
+  border-color: var(--verde);
+}
+.verde .franjaTitulo {
+  color: var(--verde-texto);
+}
+.verde .franjaPct {
+  color: var(--verde);
+}
+.rojo {
+  background: var(--rojo-fondo);
+  border-color: var(--rojo);
+}
+.rojo .franjaTitulo {
+  color: var(--rojo-texto);
+}
+.rojo .franjaPct {
+  color: var(--rojo);
+}
+.neutra {
+  background: var(--fondo-app);
+  border-color: var(--borde);
+}
+.neutra .franjaTitulo {
+  color: var(--texto-secundario);
+}
+
+/* Skeleton: misma forma que la tarjeta */
+.esqueleto {
+  composes: tarjeta;
+  padding: 14px;
+  gap: 12px;
+}
+.hueso {
+  background: linear-gradient(90deg, var(--neutro-3) 0%, var(--neutro-1) 50%, var(--neutro-3) 100%);
+  background-size: 200% 100%;
+  animation: brillo 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes brillo {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hueso { animation: none; }
+}
+
+.equipo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.escudo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.escudoVacio {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--neutro-3);
+  border: 1px solid var(--borde);
+  color: var(--texto-secundario);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* PC: todo un poco más grande y fácil de tocar */
+@media (min-width: 900px) {
+  .tarjeta {
+    padding: 8px 18px 18px;
+    border-radius: 22px;
+  }
+  .fecha {
+    font-size: 14px;
+  }
+  .nombre {
+    font-size: 23px;
+  }
+  .goles {
+    font-size: 26px;
+  }
+  .escudo,
+  .escudoVacio {
+    width: 30px;
+    height: 30px;
+  }
+  .franja {
+    padding: 12px 16px;
+  }
+  .franjaTitulo,
+  .franjaCuota {
+    font-size: 13px;
+  }
+  .franjaPick {
+    font-size: 17px;
+  }
+  .franjaPct {
+    font-size: 28px;
+  }
+}

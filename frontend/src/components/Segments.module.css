@@ -1,0 +1,33 @@
+.grupo {
+  padding: 10px 16px 4px;
+  display: grid;
+  gap: 6px;
+}
+.boton {
+  height: 44px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto-inactivo);
+}
+.activo {
+  border-color: var(--acento);
+  background: var(--acento);
+  color: var(--sobre-acento);
+}
+
+@media (min-width: 900px) {
+  .grupo {
+    padding: 10px 28px 4px;
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 900px) {
+  .boton {
+    height: 48px;
+    font-size: 16px;
+  }
+}

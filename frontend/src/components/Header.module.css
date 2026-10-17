@@ -1,0 +1,49 @@
+.cabecera {
+  padding: 20px 16px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.textos {
+  display: flex;
+  flex-direction: column;
+}
+.hola {
+  font-size: 12px;
+  color: var(--texto-secundario);
+  margin-top: 3px;
+}
+.modo {
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--acento);
+  background: var(--acento-fondo);
+  color: var(--acento-texto-claro);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 12px;
+}
+
+/* PC: el logo ya está en el menú lateral; aquí queda el saludo */
+@media (min-width: 900px) {
+  .cabecera {
+    padding: 28px 28px 12px;
+  }
+  .marca > div:first-child,
+  .textos > div:first-child {
+    display: none;
+  }
+  .hola {
+    margin: 0;
+    font-family: var(--fuente-titulo);
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--texto);
+  }
+}

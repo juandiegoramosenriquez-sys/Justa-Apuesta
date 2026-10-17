@@ -1,0 +1,10 @@
+# Perfil de producción: Render (512 MB de RAM) + Aiven for MySQL.
+# DB_URL de ejemplo: jdbc:mysql://HOST:PUERTO/defaultdb?sslMode=REQUIRED
+spring:
+  main:
+    # Arranca más rápido y con menos memoria en el plan gratis de Render
+    lazy-initialization: true
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1

@@ -1,0 +1,21 @@
+# MySQL 8 en local con Docker (opcional: también puedes usar el MySQL de XAMPP).
+# Uso: docker compose up -d
+# Luego arranca el backend con DB_URL=jdbc:mysql://localhost:3307/justa_apuesta y DB_DIALECT=org.hibernate.dialect.MySQLDialect
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: justa-apuesta-mysql
+    environment:
+      MYSQL_DATABASE: justa_apuesta
+      MYSQL_USER: justa
+      MYSQL_PASSWORD: justa
+      MYSQL_ROOT_PASSWORD: root
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    # Puerto 3307 para no chocar con XAMPP ni con MySQL92 (que usan el 3306)
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  mysql-data:

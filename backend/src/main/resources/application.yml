@@ -1,0 +1,141 @@
+# Configuración común. Los valores sensibles vienen de variables de entorno (ver .env.example).
+spring:
+  application:
+    name: justa-apuesta-api
+  config:
+    # En tu PC las claves privadas van en backend/.env (no se sube a GitHub). En Render son variables de entorno.
+    import: optional:file:./.env[.properties]
+  profiles:
+    # En tu PC se usa "local" (MySQL de XAMPP). En Render se define SPRING_PROFILES_ACTIVE=prod.
+    default: local
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Las tablas las crea Flyway (src/main/resources/db/migration); Hibernate solo verifica
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        type:
+          # Instant se guarda en columnas DATETIME(6) (UTC)
+          preferred_instant_jdbc_type: TIMESTAMP
+  flyway:
+    enabled: true
+
+server:
+  port: ${PORT:8080}
+
+justa:
+  # Dominio del frontend (Cloudflare Pages en producción)
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  zona-horaria: America/Lima
+  jwt:
+    # Cadena aleatoria de al menos 32 caracteres. Nunca la subas al repositorio.
+    secreto: ${JWT_SECRET}
+    expiracion-dias: 7
+  proveedor:
+    # API-Football (api-sports.io). La clave solo vive en el backend.
+    url: https://v3.football.api-sports.io
+    api-key: ${FOOTBALL_API_KEY:}
+    # Plan gratis: 100 consultas al día y 10 por minuto
+    max-por-minuto: 10
+    # Si quedan menos consultas que esto en el día, se usa solo la caché
+    reserva-diaria: 5
+  historial:
+    # football-data.org (gratis): temporada completa de 12 competiciones, sin estadísticas.
+    # Da el historial de goles desde el primer día para las grandes ligas.
+    url: https://api.football-data.org/v4
+    api-key: ${FOOTBALL_DATA_ORG_KEY:}
+    max-por-minuto: 10
+    # código en football-data.org -> id de la misma liga en API-Football
+    competiciones:
+      - codigo: PL
+        liga-api-football: 39
+      - codigo: PD
+        liga-api-football: 140
+      - codigo: SA
+        liga-api-football: 135
+      - codigo: BL1
+        liga-api-football: 78
+      - codigo: FL1
+        liga-api-football: 61
+      - codigo: CL
+        liga-api-football: 2
+      - codigo: PPL
+        liga-api-football: 94
+      - codigo: DED
+        liga-api-football: 88
+      - codigo: BSA
+        liga-api-football: 71
+      - codigo: ELC
+        liga-api-football: 40
+  the-sports-db:
+    # TheSportsDB (gratis, sin registro; "123" es la clave pública). Completa el historial de goles de los equipos
+    # que casi no tienen partidos guardados, de cualquier liga del mundo. Vacía = desactivado.
+    url: https://www.thesportsdb.com/api/v1/json
+    api-key: ${THESPORTSDB_KEY:123}
+    # La versión gratis responde 429 si se pasa: se espera un minuto y se reintenta
+    max-por-minuto: 12
+    equipos-por-ejecucion: 60
+    ligas-por-ejecucion: 25
+    # Jornadas que se bajan hacia atrás de cada liga
+    rondas: 6
+  admin:
+    # Clave para POST /api/admin/sync (cabecera X-Admin-Key). Vacía = desactivado.
+    clave: ${ADMIN_SYNC_KEY:}
+  sync:
+    # Cada día a las 4:30 a. m. hora de Lima
+    cron: "0 30 4 * * *"
+    # El plan gratis de API-Football solo permite ayer, hoy y mañana.
+    # Con un plan pagado se puede subir a dias-atras: 3, dias-adelante: 7 y dias-historial: 75.
+    dias-atras: 1
+    dias-adelante: 1
+    # Partidos más viejos que esto se borran (1 GB de disco en Aiven). 5 años: así se guardan los
+    # enfrentamientos de temporadas pasadas (el plan gratis da los de 2022 a 2024)
+    dias-retencion: 1825
+    # Días anteriores que se bajan de a pocos para armar el historial (0 = no se puede en el plan gratis)
+    dias-historial: 0
+    dias-historial-por-ejecucion: 12
+    # Estadísticas (corners, tarjetas, remates): 1 consulta por partido, solo de las ligas de abajo
+    estadisticas-por-ejecucion: 45
+    estadisticas-por-refresco: 2
+    estadisticas-por-detalle: 4
+    # Ligas que se sincronizan cada día (id = id de la liga en API-Football)
+    ligas:
+      - nombre: Liga 1 Perú
+        pais: Perú
+        proveedor-id: 281
+      - nombre: Premier League
+        pais: Inglaterra
+        proveedor-id: 39
+      - nombre: LaLiga
+        pais: España
+        proveedor-id: 140
+      - nombre: Serie A
+        pais: Italia
+        proveedor-id: 135
+      - nombre: Bundesliga
+        pais: Alemania
+        proveedor-id: 78
+      - nombre: Ligue 1
+        pais: Francia
+        proveedor-id: 61
+      - nombre: Liga Profesional Argentina
+        pais: Argentina
+        proveedor-id: 128
+      - nombre: MLS
+        pais: Estados Unidos
+        proveedor-id: 253
+      - nombre: Champions League
+        pais: Europa
+        proveedor-id: 2
+      - nombre: Copa Libertadores
+        pais: Sudamérica
+        proveedor-id: 13

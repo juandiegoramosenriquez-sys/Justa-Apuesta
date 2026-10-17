@@ -1,0 +1,183 @@
+/* Piezas visuales que se repiten en varias pantallas (valores del prototipo). */
+
+.tituloSeccion {
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  font-size: 19px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.tituloGrande {
+  font-family: var(--fuente-titulo);
+  font-weight: 800;
+  font-size: 20px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tarjeta18 {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sub {
+  font-size: 12px;
+  color: var(--texto-secundario);
+}
+
+.numero {
+  font-family: var(--fuente-titulo);
+  font-weight: 800;
+}
+
+.contenido {
+  padding: 12px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filaTitulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.vacio {
+  text-align: center;
+  color: var(--texto-secundario);
+  padding: 36px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.aviso {
+  font-size: 12px;
+  color: var(--acento-texto-claro);
+  background: var(--acento-fondo);
+  border: 1px solid var(--acento-borde);
+  border-radius: 12px;
+  padding: 10px 12px;
+  line-height: 1.45;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--rojo);
+  background: var(--rojo-fondo);
+  border-radius: 12px;
+  padding: 12px;
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.botonReintentar {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--rojo);
+  background: transparent;
+  color: var(--rojo);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 14px;
+}
+
+.pie {
+  font-size: 12px;
+  color: var(--texto-secundario);
+  line-height: 1.5;
+}
+
+.grupoLiga {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cabeceraLiga {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 2px 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--texto-etiqueta);
+}
+.cabeceraLiga img {
+  object-fit: contain;
+  background: var(--texto);
+  border-radius: 4px;
+  padding: 1px;
+}
+.paisLiga {
+  font-weight: 500;
+  color: var(--texto-apagado);
+}
+
+/* PC: más aire y las tarjetas de partido en columnas */
+@media (min-width: 900px) {
+  .contenido {
+    padding: 16px 28px 28px;
+    gap: 16px;
+  }
+  .grupoLiga {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 12px;
+  }
+  .cabeceraLiga {
+    grid-column: 1 / -1;
+  }
+  .tituloSeccion {
+    font-size: 21px;
+  }
+}
+
+@media (min-width: 900px) {
+  .tituloSeccion {
+    font-size: 24px;
+  }
+  .tituloGrande {
+    font-size: 24px;
+  }
+  .sub {
+    font-size: 14px;
+  }
+  .tarjeta,
+  .tarjeta18 {
+    padding: 20px;
+  }
+  .cabeceraLiga {
+    font-size: 15px;
+  }
+  .vacio {
+    font-size: 16px;
+  }
+}

@@ -1,0 +1,256 @@
+/* Mi boleto: hoja fija sobre la barra inferior (en PC, abajo a la derecha). */
+.fondo {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  background: var(--velo);
+  z-index: 19;
+}
+
+.hoja {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(68px + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 480px;
+  background: var(--superficie);
+  border-top: 2px solid var(--acento);
+  border-radius: 18px 18px 0 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 140px);
+}
+
+.barra {
+  border: 0;
+  background: transparent;
+  color: var(--texto);
+  padding: 8px 16px 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 10px;
+  text-align: left;
+}
+.asa {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--neutro-2);
+}
+.resumen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.icono {
+  color: var(--acento-texto-claro);
+  display: flex;
+}
+.titulo {
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  font-size: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.cantidad {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--acento);
+  color: var(--sobre-acento);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.totales {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--texto-secundario);
+}
+.pctTotal {
+  font-family: var(--fuente-titulo);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--acento-texto-claro);
+}
+.cuota {
+  background: var(--acento-fondo);
+  border: 1px solid var(--acento-borde);
+  color: var(--acento-texto-claro);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cuerpo {
+  padding: 0 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--neutro-3);
+}
+.pickTextos {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pickTexto {
+  font-size: 14px;
+  font-weight: 500;
+}
+.pickPartido {
+  font-size: 11px;
+  color: var(--texto-secundario);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pickPct {
+  font-family: var(--fuente-titulo);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--verde);
+}
+.quitar {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: transparent;
+  color: var(--texto-apagado);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.resumenFinal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 2px;
+}
+.filaTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--texto-secundario);
+}
+.grande,
+.grandeBlanco {
+  font-family: var(--fuente-titulo);
+  font-weight: 800;
+  font-size: 24px;
+  color: var(--acento-texto-claro);
+}
+.grandeBlanco {
+  color: var(--texto);
+}
+
+.acciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.principal,
+.secundario {
+  height: 44px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.principal {
+  border: 0;
+  background: var(--acento);
+  color: var(--sobre-acento);
+}
+.secundario {
+  border: 1px solid var(--acento-barra);
+  background: transparent;
+  color: var(--acento-texto-claro);
+}
+.vaciar {
+  border: 0;
+  background: transparent;
+  color: var(--texto-apagado);
+  font-size: 12px;
+  text-decoration: underline;
+  align-self: center;
+}
+.nota {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--texto-apagado);
+}
+
+.mensaje {
+  position: absolute;
+  top: -44px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--texto);
+  color: var(--fondo-app);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* PC: panel flotante abajo a la derecha, mismo estilo */
+@media (min-width: 900px) {
+  .hoja {
+    left: auto;
+    right: 24px;
+    transform: none;
+    bottom: 24px;
+    width: 380px;
+    border: 1px solid var(--acento-borde);
+    border-top: 2px solid var(--acento);
+    border-radius: 18px;
+    max-height: calc(100dvh - 48px);
+  }
+  .fondo {
+    background: transparent;
+  }
+}

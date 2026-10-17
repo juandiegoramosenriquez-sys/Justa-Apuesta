@@ -1,0 +1,15 @@
+# Perfil local: MySQL de XAMPP (MariaDB 10.4). La base de datos se crea sola si no existe.
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/justa_apuesta?createDatabaseIfNotExist=true}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:}
+  jpa:
+    # XAMPP trae MariaDB 10.4; Hibernate 7 solo soporta 10.6+ con su dialecto normal.
+    # Con Docker (MySQL 8) define DB_DIALECT=org.hibernate.dialect.MySQLDialect
+    database-platform: ${DB_DIALECT:org.hibernate.community.dialect.MariaDBLegacyDialect}
+
+justa:
+  jwt:
+    # Solo para tu PC. En producción JWT_SECRET es obligatorio y distinto.
+    secreto: ${JWT_SECRET:solo-desarrollo-local-cambiar-en-produccion-0123456789}
