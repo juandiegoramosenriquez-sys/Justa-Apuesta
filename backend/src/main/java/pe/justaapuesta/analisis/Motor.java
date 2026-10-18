@@ -451,8 +451,13 @@ public final class Motor {
 
 	/** Mercados de mayor a menor dentro del rango del modo; si no hay ninguno, todos los <= máximo. */
 	public static List<Mercado> picksFor(Entradas e, Modo modo) {
+		return picksFor(allPicks(e), modo);
+	}
+
+	/** Igual, con los mercados ya calculados (para no recalcularlos en cada modo). */
+	public static List<Mercado> picksFor(List<Mercado> mercados, Modo modo) {
 		RangoModo r = rango(modo);
-		List<Mercado> todos = allPicks(e).stream().sorted(Comparator.comparingInt(Mercado::pct).reversed()).toList();
+		List<Mercado> todos = mercados.stream().sorted(Comparator.comparingInt(Mercado::pct).reversed()).toList();
 		List<Mercado> enRango = todos.stream().filter(a -> a.pct() >= r.min() && a.pct() <= r.max()).toList();
 		return enRango.isEmpty() ? todos.stream().filter(a -> a.pct() <= r.max()).toList() : enRango;
 	}
@@ -472,7 +477,11 @@ public final class Motor {
 	 * con cuota jugable; si tampoco, el más alto del modo.
 	 */
 	public static Mercado mejor(Entradas e, Modo modo) {
-		List<Mercado> tp = picksFor(e, modo);
+		return mejor(allPicks(e), modo);
+	}
+
+	public static Mercado mejor(List<Mercado> mercados, Modo modo) {
+		List<Mercado> tp = picksFor(mercados, modo);
 		return tp.stream().filter(m -> m.blindado() && jugable(m)).findFirst()
 				.or(() -> tp.stream().filter(Motor::jugable).findFirst())
 				.orElse(tp.get(0));

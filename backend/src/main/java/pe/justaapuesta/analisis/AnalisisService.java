@@ -90,10 +90,43 @@ public class AnalisisService {
 		return out;
 	}
 
+	/**
+	 * Lo ya leído y calculado de cada partido, para no leer el JSON ni recalcular los mercados en cada pedido
+	 * (el servidor gratis tiene muy poca CPU). Se descarta si cambia el análisis guardado.
+	 */
+	private record Memo(Instant calculadoEn, Entradas entradas, java.util.concurrent.atomic.AtomicReference<List<Motor.Mercado>> mercados) {
+	}
+
+	private static final int MAX_MEMO = 800;
+	private final Map<Long, Memo> memo = new ConcurrentHashMap<>();
+
+	private void recordar(Long partidoId, Instant calculadoEn, Entradas e) {
+		if (memo.size() > MAX_MEMO) {
+			memo.clear();
+		}
+		memo.put(partidoId, new Memo(calculadoEn, e, new java.util.concurrent.atomic.AtomicReference<>()));
+	}
+
+	/** Todos los mercados de un partido, calculados una sola vez por análisis. */
+	public List<Motor.Mercado> mercados(Long partidoId, Entradas e) {
+		Memo m = memo.get(partidoId);
+		if (m == null || m.entradas() != e) {
+			return Motor.allPicks(e);
+		}
+		return m.mercados().updateAndGet(x -> x != null ? x : Motor.allPicks(e));
+	}
+
 	private Entradas entradas(Partido p, AnalisisCache cache, boolean forzar) {
 		Instant ahora = Instant.now();
 		boolean empezado = !p.getFechaHoraUtc().isAfter(ahora);
 		if (cache != null && !forzar) {
+			Memo m = memo.get(p.getId());
+			if (m != null && m.calculadoEn().equals(cache.getCalculadoEn())) {
+				if (!empezado && cache.getCalculadoEn().isBefore(ahora.minus(VIGENCIA_ANALISIS))) {
+					recalcularAparte(p.getId());
+				}
+				return m.entradas();
+			}
 			try {
 				Entradas guardadas = json.readValue(cache.getJson(), Entradas.class);
 				// Los de antes de las pruebas del pick blindado se recalculan si el partido aún no empieza
@@ -102,6 +135,7 @@ public class AnalisisService {
 					if (!empezado && cache.getCalculadoEn().isBefore(ahora.minus(VIGENCIA_ANALISIS))) {
 						recalcularAparte(p.getId());
 					}
+					recordar(p.getId(), cache.getCalculadoEn(), guardadas);
 					return guardadas;
 				}
 			} catch (RuntimeException e) {
@@ -116,6 +150,7 @@ public class AnalisisService {
 			c.setJson(json.writeValueAsString(e));
 			c.setCalculadoEn(ahora);
 			cacheRepository.save(c);
+			recordar(p.getId(), ahora, e);
 		}
 		return e;
 	}
@@ -171,7 +206,7 @@ public class AnalisisService {
 	PartidoResumenDto resumen(Partido p, Entradas e, Modo modo, boolean favorito, Motor.Final f) {
 		ConsejoDto consejo = null;
 		if (e != null && e.suficientes()) {
-			consejo = consejo(Motor.mejor(e, modo), f);
+			consejo = consejo(Motor.mejor(mercados(p.getId(), e), modo), f);
 		}
 		return new PartidoResumenDto(p.getId(), p.getFechaHoraUtc(),
 				new LigaDto(p.getLiga().getNombre(), p.getLiga().getPais(), p.getLiga().getLogoUrl()),

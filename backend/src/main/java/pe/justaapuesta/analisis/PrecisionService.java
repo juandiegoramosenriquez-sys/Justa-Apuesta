@@ -31,7 +31,9 @@ public class PrecisionService {
 
 	private static final Logger log = LoggerFactory.getLogger(PrecisionService.class);
 	public static final int DIAS = 30;
-	public static final int MAXIMO = 400;
+	/** En el servidor gratis se mide con pocos partidos y con pausas, para no quitarle CPU a la web. */
+	public static final int MAXIMO = 200;
+	private static final long PAUSA_MS = 25;
 
 	private final PartidoRepository partidoRepository;
 	private final EntradasService entradasService;
@@ -110,6 +112,9 @@ public class PrecisionService {
 				continue;
 			}
 			Entradas e = entradasService.calcular(p);
+			if (!conMuestras) {
+				PrecalculoService.dormir(PAUSA_MS);
+			}
 			if (!e.suficientes()) {
 				continue;
 			}

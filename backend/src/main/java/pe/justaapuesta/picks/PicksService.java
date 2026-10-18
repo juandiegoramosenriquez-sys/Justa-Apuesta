@@ -122,10 +122,11 @@ public class PicksService {
 			if (e == null || !e.suficientes()) {
 				continue;
 			}
-			Motor.allPicks(e).stream().filter(m -> m.blindado() && Motor.jugable(m))
+			List<Motor.Mercado> todos = analisis.mercados(p.getId(), e);
+			todos.stream().filter(m -> m.blindado() && Motor.jugable(m))
 					.max(Comparator.comparingInt(Motor.Mercado::pct))
 					.ifPresent(m -> blindados.add(dto(p, m)));
-			Motor.picksFor(e, clave.modo()).stream().filter(Motor::jugable).map(m -> dto(p, m)).sorted(ORDEN).limit(2)
+			Motor.picksFor(todos, clave.modo()).stream().filter(Motor::jugable).map(m -> dto(p, m)).sorted(ORDEN).limit(2)
 					.forEach(mejores::add);
 		}
 		blindados.sort(ORDEN);

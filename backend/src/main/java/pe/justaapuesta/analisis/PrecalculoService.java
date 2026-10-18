@@ -34,9 +34,25 @@ public class PrecalculoService {
 	private final PicksService picks;
 	private final AtomicBoolean enCurso = new AtomicBoolean(false);
 
+	/** Al arrancar se espera un poco: primero el servidor tiene que poder responder (el plan gratis tiene poca CPU). */
+	private static final long ESPERA_AL_ARRANCAR_MS = 45_000;
+	/** Pausa entre partido y partido, para dejar CPU libre a quien está usando la web. */
+	private static final long PAUSA_MS = 25;
+
 	@EventListener(ApplicationReadyEvent.class)
 	public void alArrancar() {
-		lanzar();
+		Thread.ofVirtual().name("precalculo-espera").start(() -> {
+			dormir(ESPERA_AL_ARRANCAR_MS);
+			lanzar();
+		});
+	}
+
+	static void dormir(long ms) {
+		try {
+			Thread.sleep(ms);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	@EventListener(DatosActualizadosEvent.class)
@@ -58,6 +74,7 @@ public class PrecalculoService {
 						try {
 							analisis.precalcular(p);
 							n++;
+							dormir(PAUSA_MS);
 						} catch (RuntimeException e) {
 							log.warn("Precálculo del partido {} falló: {}", p.getId(), e.getMessage());
 						}
