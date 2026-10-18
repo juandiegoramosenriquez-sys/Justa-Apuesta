@@ -251,3 +251,17 @@ export interface Boleto {
   pct: number
   cuota: number
 }
+
+export interface Conteo {
+  picks: number
+  acertados: number
+  pct: number
+}
+
+/** Acierto real del modelo en partidos ya jugados (analizados con los datos de antes de cada partido). */
+export interface Precision {
+  calculadoEn: string
+  partidos: number
+  blindados: Conteo
+  consejo: Conteo
+}

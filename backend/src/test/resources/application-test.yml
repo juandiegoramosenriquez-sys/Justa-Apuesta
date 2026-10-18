@@ -19,3 +19,5 @@ justa:
     api-key: ""
   admin:
     clave: ""
+  precalculo:
+    activo: false

@@ -331,6 +331,11 @@ public final class Motor {
 
 	/** Mínimos para que un pick sea blindado. */
 	static final int MODELO_MIN = 75;
+	/**
+	 * Certeza final mínima del pick blindado. Medido en 867 partidos jugados (analizados con los datos de antes de
+	 * cada partido): con 82% y cuota desde 1.05 el blindado acertó el 84%; con 75% acertaba el 78%.
+	 */
+	static final int CERTEZA_BLINDADO = 82;
 	static final double EQUIPO_MIN = 0.8;
 	static final double H2H_MIN = 0.67;
 	static final double LIGA_MIN = 0.7;
@@ -394,7 +399,7 @@ public final class Motor {
 			pct = 0.75 * modelo + 0.25 * (pl != null ? tl : tv).valor() * 100;
 		}
 		int fin = Math.max(1, Math.min(99, redondear(pct)));
-		boolean blindado = modelo >= MODELO_MIN && fin >= MODELO_MIN && Boolean.TRUE.equals(pl)
+		boolean blindado = modelo >= MODELO_MIN && fin >= CERTEZA_BLINDADO && Boolean.TRUE.equals(pl)
 				&& Boolean.TRUE.equals(pv) && !Boolean.FALSE.equals(ph) && !Boolean.FALSE.equals(pg);
 		return new Mercado(clave, categoria, nombreCategoria, texto, fin, check, modelo, pruebas, blindado);
 	}
@@ -420,9 +425,10 @@ public final class Motor {
 	}
 
 	/**
-	 * Cuota mínima para recomendar un pick: por debajo (más de ~86%) las casas casi no lo ofrecen o no paga nada.
+	 * Cuota mínima para recomendar un pick: por debajo (más de ~90%) las casas casi no lo ofrecen o no paga nada.
+	 * Medido en 867 partidos jugados: con 1.05 los blindados aciertan más que con 1.10 (84% frente a 80%).
 	 */
-	public static final double CUOTA_MINIMA = 1.10;
+	public static final double CUOTA_MINIMA = 1.05;
 
 	public static boolean jugable(Mercado m) {
 		return m.cuota() >= CUOTA_MINIMA;

@@ -15,13 +15,13 @@ public interface AnalisisCacheRepository extends JpaRepository<AnalisisCache, An
 	List<AnalisisCache> base(@Param("ids") Collection<Long> partidoIds);
 
 	/**
-	 * Borra el análisis guardado de los partidos que aún no empiezan y de los que se analizaron por primera vez
-	 * después de empezar, para que se recalculen con los datos nuevos (el cálculo solo usa partidos anteriores
-	 * al inicio, así que sigue siendo honesto). Los calculados antes del partido se conservan tal cual.
+	 * Borra el análisis de los partidos ya empezados que se analizaron por primera vez después de empezar, para que
+	 * se recalculen con los datos nuevos (el cálculo solo usa partidos anteriores al inicio, así que sigue siendo
+	 * honesto). Los de partidos por jugar no se borran: se recalculan en segundo plano.
 	 */
 	@Modifying
 	@Query("""
 			delete from AnalisisCache a where exists (select 1 from Partido p where p.id = a.clave.partidoId
-			  and (p.fechaHoraUtc > :ahora or p.fechaHoraUtc < a.calculadoEn))""")
+			  and p.fechaHoraUtc <= :ahora and p.fechaHoraUtc < a.calculadoEn)""")
 	int borrarRecalculables(@Param("ahora") Instant ahora);
 }

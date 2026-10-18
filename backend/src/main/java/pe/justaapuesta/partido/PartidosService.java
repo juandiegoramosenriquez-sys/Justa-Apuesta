@@ -97,21 +97,28 @@ public class PartidosService {
 		LocalDate hoy = LocalDate.now(zona);
 		Instant inicioHoy = hoy.atStartOfDay(zona).toInstant();
 		Instant inicioManana = hoy.plusDays(1).atStartOfDay(zona).toInstant();
+		Instant ahora = Instant.now();
 		return switch (pestana) {
+			// Hoy: solo los que todavía no empiezan. En cuanto empieza, pasa a Jugados.
 			case HOY -> partidoRepository.entre(inicioHoy, inicioManana).stream()
-					.filter(p -> p.getEstado() != EstadoPartido.JUGADO && p.getEstado() != EstadoPartido.SUSPENDIDO)
+					.filter(p -> p.getFechaHoraUtc().isAfter(ahora) && sinTerminar(p))
 					.toList();
 			case PROXIMO -> partidoRepository
 					.entre(inicioManana, hoy.plusDays(DIAS_PROXIMOS + 1L).atStartOfDay(zona).toInstant())
 					.stream()
-					.filter(p -> p.getEstado() != EstadoPartido.JUGADO && p.getEstado() != EstadoPartido.SUSPENDIDO)
+					.filter(this::sinTerminar)
 					.toList();
+			// Jugados: los terminados y los que ya empezaron (en juego o esperando el resultado), el más reciente primero
 			case JUGADO -> partidoRepository
-					.entre(hoy.minusDays(DIAS_JUGADOS).atStartOfDay(zona).toInstant(), inicioManana).stream()
-					.filter(Partido::jugado)
+					.entre(hoy.minusDays(DIAS_JUGADOS).atStartOfDay(zona).toInstant(), ahora).stream()
+					.filter(p -> p.jugado() || (sinTerminar(p) && !p.getFechaHoraUtc().isAfter(ahora)))
 					.sorted(Comparator.comparing(Partido::getFechaHoraUtc).reversed())
 					.toList();
 		};
+	}
+
+	private boolean sinTerminar(Partido p) {
+		return p.getEstado() != EstadoPartido.JUGADO && p.getEstado() != EstadoPartido.SUSPENDIDO;
 	}
 
 	/**

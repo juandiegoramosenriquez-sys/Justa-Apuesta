@@ -74,6 +74,36 @@
   flex-shrink: 0;
 }
 
+/* Acierto real medido */
+.acierto {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--verde-fondo);
+  border: 1px solid var(--verde);
+}
+.aciertoPct {
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--verde);
+  flex-shrink: 0;
+}
+.aciertoTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--verde-texto);
+  line-height: 1.4;
+}
+.aciertoTexto b {
+  font-size: 13px;
+  color: var(--texto);
+}
+
 /* Combinadas seguras */
 .combinadas {
   display: flex;

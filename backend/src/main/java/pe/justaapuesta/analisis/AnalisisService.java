@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -90,11 +93,15 @@ public class AnalisisService {
 	private Entradas entradas(Partido p, AnalisisCache cache, boolean forzar) {
 		Instant ahora = Instant.now();
 		boolean empezado = !p.getFechaHoraUtc().isAfter(ahora);
-		if (cache != null && !forzar && (empezado || cache.getCalculadoEn().isAfter(ahora.minus(VIGENCIA_ANALISIS)))) {
+		if (cache != null && !forzar) {
 			try {
 				Entradas guardadas = json.readValue(cache.getJson(), Entradas.class);
 				// Los de antes de las pruebas del pick blindado se recalculan si el partido aún no empieza
 				if (empezado || guardadas.historiales() != null) {
+					// Lo guardado se muestra al instante; si está viejo se recalcula aparte, sin hacer esperar a nadie
+					if (!empezado && cache.getCalculadoEn().isBefore(ahora.minus(VIGENCIA_ANALISIS))) {
+						recalcularAparte(p.getId());
+					}
 					return guardadas;
 				}
 			} catch (RuntimeException e) {
@@ -111,6 +118,40 @@ public class AnalisisService {
 			cacheRepository.save(c);
 		}
 		return e;
+	}
+
+	/** Partidos que se están recalculando aparte (para no repetirlos). */
+	private final Set<Long> enRecalculo = ConcurrentHashMap.newKeySet();
+	/** Un solo hilo: el plan gratis tiene poca CPU y la base está en otro servidor. */
+	private final ExecutorService aparte = Executors.newSingleThreadExecutor(
+			Thread.ofVirtual().name("recalculo-", 0).factory());
+
+	private void recalcularAparte(Long partidoId) {
+		if (!enRecalculo.add(partidoId)) {
+			return;
+		}
+		aparte.submit(() -> {
+			try {
+				partidoRepository.conEquipos(partidoId).ifPresent(this::precalcular);
+			} catch (RuntimeException ex) {
+				log.warn("No se pudo recalcular el partido {}: {}", partidoId, ex.getMessage());
+			} finally {
+				enRecalculo.remove(partidoId);
+			}
+		});
+	}
+
+	/**
+	 * Deja listo el análisis de un partido para que la lista cargue al instante: los que no empiezan se recalculan
+	 * con los datos más nuevos; los ya empezados solo se calculan si nunca se hizo (con datos de antes del partido).
+	 */
+	public void precalcular(Partido p) {
+		boolean empezado = !p.getFechaHoraUtc().isAfter(Instant.now());
+		AnalisisCache cache = cacheRepository.base(List.of(p.getId())).stream().findFirst().orElse(null);
+		if (empezado && cache != null) {
+			return;
+		}
+		entradas(p, cache, !empezado);
 	}
 
 	// ---------- Tarjetas de partido ----------
@@ -143,9 +184,15 @@ public class AnalisisService {
 				f == null ? null : m.check().apply(f), m.cuota(), m.blindado());
 	}
 
-	/** HOY / PROXIMO se recalculan con la fecha de hoy en Lima (el guardado puede ser de ayer). */
+	/**
+	 * HOY / PROXIMO se recalculan con la fecha de hoy en Lima (el guardado puede ser de ayer). Uno que ya empezó
+	 * y aún no tiene resultado se muestra EN_VIVO.
+	 */
 	public EstadoPartido estadoActual(Partido p) {
 		if (p.getEstado() == EstadoPartido.HOY || p.getEstado() == EstadoPartido.PROXIMO) {
+			if (!p.getFechaHoraUtc().isAfter(Instant.now())) {
+				return EstadoPartido.EN_VIVO;
+			}
 			return EstadoPartido.porFecha(p.getFechaHoraUtc(), props.zona(), LocalDate.now(props.zona()));
 		}
 		return p.getEstado();

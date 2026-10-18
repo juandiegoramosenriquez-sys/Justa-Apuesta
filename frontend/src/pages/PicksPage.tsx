@@ -25,6 +25,8 @@ export function PicksPage() {
   const [dia, setDia] = useState<Dia>('HOY')
   const q = useQuery({ queryKey: ['picks', dia], queryFn: () => picksApi.delDia(dia) })
   const boleto = useBoleto()
+  const precision = useQuery({ queryKey: ['precision'], queryFn: picksApi.precision, staleTime: 30 * 60_000 })
+  const acierto = precision.data?.blindados
   if (!usuario) return null
 
   const nombreDia = dia === 'HOY' ? 'Hoy' : 'Próximos días'
@@ -42,6 +44,15 @@ export function PicksPage() {
           <div className={ui.filaTitulo}>
             <h1 className={ui.tituloSeccion}>Combinadas seguras · {nombreDia}</h1>
             <span className={ui.sub}>Solo picks blindados</span>
+          </div>
+        )}
+        {acierto && acierto.picks >= 20 && (
+          <div className={s.acierto}>
+            <span className={s.aciertoPct}>{acierto.pct}%</span>
+            <span className={s.aciertoTexto}>
+              <b>Acierto real del pick blindado</b>
+              <span>{acierto.acertados} de {acierto.picks} en partidos ya jugados, analizados con los datos de antes de cada partido. Ningún pick es seguro al 100%.</span>
+            </span>
           </div>
         )}
         {q.data && combinadas.length === 0 && (

@@ -48,7 +48,7 @@ public class SecurityConfig {
 						// Boletos compartidos por link: los ve cualquiera
 						.requestMatchers(HttpMethod.GET, "/api/publico/**").permitAll()
 						// Protegido con X-Admin-Key (ver AdminController), no con JWT
-						.requestMatchers(HttpMethod.POST, "/api/admin/sync").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/admin/sync", "/api/admin/precision").permitAll()
 						.anyRequest().authenticated())
 				.exceptionHandling(e -> e.authenticationEntryPoint(noAutenticado()))
 				.addFilterBefore(jwtFiltro, UsernamePasswordAuthenticationFilter.class)

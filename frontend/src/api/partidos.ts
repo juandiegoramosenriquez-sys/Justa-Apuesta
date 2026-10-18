@@ -1,5 +1,5 @@
 import { api } from './cliente'
-import type { Analisis, Boleto, ListaPartidos, Pestana, PickSeguido, PicksDelDia, Ultimos } from './tipos'
+import type { Analisis, Boleto, ListaPartidos, Pestana, PickSeguido, PicksDelDia, Precision, Ultimos } from './tipos'
 
 export const partidosApi = {
   lista: (estado: Pestana) => api<ListaPartidos>(`/partidos?estado=${estado}`),
@@ -11,6 +11,8 @@ export const partidosApi = {
 
 export const picksApi = {
   delDia: (estado: 'HOY' | 'PROXIMO') => api<PicksDelDia>(`/picks?estado=${estado}`),
+  /** null si todavía no se midió */
+  precision: () => api<Precision | null>('/precision'),
   favoritos: () => api<ListaPartidos>('/favoritos'),
   marcarFavorito: (id: number) => api<void>(`/favoritos/${id}`, { method: 'POST' }),
   quitarFavorito: (id: number) => api<void>(`/favoritos/${id}`, { method: 'DELETE' }),

@@ -35,7 +35,7 @@ App web *mobile-first* de **análisis de partidos de fútbol y probabilidades** 
 
 | Pantalla | Qué tiene |
 |---|---|
-| **Partidos** | Pestañas *Jugados · Hoy · Próximos*, agrupados por liga (tus ligas favoritas primero). Buscador de **cualquier equipo** del mundo. Cada tarjeta muestra el consejo del partido con su % y su cuota aproximada. |
+| **Partidos** | Pestañas *Jugados · Hoy · Próximos* (un partido pasa de Hoy a Jugados en cuanto empieza), agrupados por liga (tus ligas favoritas primero). Buscador de **cualquier equipo** del mundo. Cada tarjeta muestra el consejo del partido con su % y su cuota aproximada. |
 | **Detalle del partido** | Racha de los últimos 5 de cada equipo, **¿Quién gana?**, el **consejo** (pick blindado con sus 5 pruebas), "También probable" y "Evita", enfrentamientos directos, **todos los mercados** (goles, corners, tarjetas, remates, ganador) con cuota y botón **+** para el boleto, cara a cara y jugadores clave. |
 | **Picks** | **Combinadas seguras** (Muy segura · Segura · Para el reto) armadas solo con picks blindados, y el ranking de **mejores picks** del día. |
 | **Mi boleto** | Barra que sube desde abajo con los picks que agregaste: probabilidad total, cuota total, **compartir link** (se abre sin cuenta) e **imagen** tipo ticket. |
@@ -110,6 +110,8 @@ Todo es **real** y **gratis**; nada se inventa. El frontend nunca llama a estas 
 - **Búsqueda:** si un equipo no está guardado, se busca en TheSportsDB y se bajan sus partidos recientes y próximos. Cada búsqueda se recuerda 7 días.
 - Los equipos que vienen de varias fuentes se unen por nombre y país.
 - Si se acaban las consultas del día, la app sigue mostrando lo guardado.
+- **Carga rápida:** el análisis de los partidos de las pestañas se calcula de antemano en segundo plano (al arrancar y después de cada sincronización). Quien abre la web ve lo guardado al instante; si está viejo, se recalcula aparte sin hacer esperar.
+- **Corners, tarjetas y remates** solo vienen de API-Football (1 consulta por partido, solo de ayer/hoy/mañana en el plan gratis). Aparecen cuando cada equipo junta 3 partidos con esas estadísticas, así que en una base nueva tardan unas semanas en salir. Se mira cómo juega el local en casa y el visitante fuera cuando hay datos suficientes.
 
 ---
 
@@ -123,14 +125,25 @@ Código: `backend/src/main/java/pe/justaapuesta/analisis/` (`Motor.java` y `Entr
 4. **Modelo de Poisson con corrección de Dixon-Coles:** da la probabilidad de cada marcador (0-0, 1-0…), corrigiendo los marcadores bajos que el Poisson simple calcula mal.
 5. **Mercados:** solo las líneas que ofrecen las casas: goles más de 1.5 / 2.5 / 3.5, ambos marcan, cada equipo marca, corners 7.5 a 10.5, tarjetas 2.5 a 5.5, remates y ganador / doble oportunidad. Una categoría sin datos reales (por ejemplo, sin corners) no se muestra.
 6. **Certeza final:** 55% el modelo + 30% lo que de verdad pasó en los últimos partidos de ambos equipos + 15% la liga.
-7. **Pick blindado:** solo si pasa **las 5 pruebas**:
+7. **Pick blindado:** solo si la certeza final es **82% o más** y pasa **las 5 pruebas**:
    - el modelo da 75% o más;
    - el local lo cumplió en **8 de cada 10** de sus partidos;
    - el visitante, igual;
    - los enfrentamientos directos lo cumplen en 67% (si hay datos);
    - la liga lo cumple en 70% (si hay datos).
-8. **Cuota aproximada:** `1 / (probabilidad × 1.06)`, es decir, con el margen típico de una casa (~6%). Los picks con cuota menor a **1.10** no se recomiendan, porque casi no pagan.
+8. **Cuota aproximada:** `1 / (probabilidad × 1.06)`, es decir, con el margen típico de una casa (~6%). Los picks con cuota menor a **1.05** no se recomiendan, porque casi no pagan.
 9. **Combinadas seguras:** solo picks blindados de partidos distintos, de mayor a menor certeza (2, 3 y 4 picks).
+
+### Acierto real (medido)
+
+`PrecisionService` toma los partidos ya jugados, calcula su análisis **solo con los datos de antes de cada partido** (lo mismo que se habría mostrado ese día) y lo compara con el resultado. Con eso se ajustaron las reglas:
+
+| Medido en 867 partidos jugados | Antes | Ahora |
+|---|---|---|
+| Pick blindado | 78% | **84%** (82%+ de certeza y cuota desde 1.05) |
+| Consejo del modo Seguro | 79% | **82%** |
+
+Las probabilidades están bien calibradas: lo que sale con 80–84% acertó el 81%; con 90% o más, el 93%. Ningún pick es seguro al 100%: un 84% falla más o menos 1 de cada 6. La app muestra el acierto real en la pantalla de Picks (`GET /api/precision`), y se vuelve a medir dos veces al día.
 
 El análisis hecho **antes** de cada partido se guarda (`analisis_cache`), así lo que muestra un partido jugado es lo que se dijo antes, y se marca con ✓ o ✗.
 
@@ -316,12 +329,14 @@ Todas bajo `/api`. Las marcadas con 🔒 necesitan sesión (`Authorization: Bear
 | GET 🔒 | `/equipos/{id}/ultimos?n=5` | Últimos partidos de un equipo |
 | GET 🔒 | `/ligas` | Ligas disponibles |
 | GET 🔒 | `/picks?estado=HOY\|PROXIMO` | Combinadas seguras y mejores picks |
+| GET 🔒 | `/precision` | Acierto real del pick blindado y del consejo |
 | GET · POST · DELETE 🔒 | `/favoritos/{partidoId}` | Favoritos |
 | GET · POST · DELETE 🔒 | `/picks-seguidos` | Picks del boleto e historial |
 | DELETE 🔒 | `/picks-seguidos/pendientes` | Vaciar el boleto |
 | POST 🔒 | `/boletos` | Crear el link para compartir el boleto |
 | GET | `/publico/boletos/{codigo}` | Ver un boleto compartido (sin cuenta) |
 | POST | `/admin/sync` | Lanzar la sincronización (cabecera `X-Admin-Key`) |
+| POST | `/admin/precision?dias=30` | Medir el acierto real ahora (cabecera `X-Admin-Key`) |
 
 ---
 
@@ -337,3 +352,4 @@ Todas bajo `/api`. Las marcadas con 🔒 necesitan sesión (`Authorization: Bear
 8. **Boleto:** barra que sube desde abajo, link público para compartir e imagen tipo ticket.
 9. **Diseño:** estilo negro, blanco y verde; letras Times + Inter; tema claro/oscuro/auto y 5 colores; versión de PC más grande y textos más cortos.
 10. **Publicación:** GitHub, Aiven, Render, Vercel y cron-job.org, todo gratis.
+11. **Más acierto y más rápido:** medición del acierto real con partidos jugados y ajuste del pick blindado (78% → 84%), análisis precalculado en segundo plano, partidos empezados pasan a Jugados y estadísticas de local/visita.

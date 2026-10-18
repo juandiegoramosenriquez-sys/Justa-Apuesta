@@ -100,14 +100,14 @@ public class EntradasService {
 				histV.size(),
 				xh,
 				xa,
-				promedioStat(histL, local, stats, EstadisticaPartido::getCorners),
-				promedioStat(histV, visita, stats, EstadisticaPartido::getCorners),
-				promedioStat(histL, local, stats, EstadisticaPartido::tarjetas),
-				promedioStat(histV, visita, stats, EstadisticaPartido::tarjetas),
-				promedioStat(histL, local, stats, EstadisticaPartido::getRematesAPuerta),
-				promedioStat(histV, visita, stats, EstadisticaPartido::getRematesAPuerta),
-				promedioStat(histL, local, stats, EstadisticaPartido::getRematesTotales),
-				promedioStat(histV, visita, stats, EstadisticaPartido::getRematesTotales),
+				promedioStat(histL, local, stats, EstadisticaPartido::getCorners, x -> x.getLocal().getId().equals(local)),
+				promedioStat(histV, visita, stats, EstadisticaPartido::getCorners, x -> x.getVisita().getId().equals(visita)),
+				promedioStat(histL, local, stats, EstadisticaPartido::tarjetas, x -> x.getLocal().getId().equals(local)),
+				promedioStat(histV, visita, stats, EstadisticaPartido::tarjetas, x -> x.getVisita().getId().equals(visita)),
+				promedioStat(histL, local, stats, EstadisticaPartido::getRematesAPuerta, x -> x.getLocal().getId().equals(local)),
+				promedioStat(histV, visita, stats, EstadisticaPartido::getRematesAPuerta, x -> x.getVisita().getId().equals(visita)),
+				promedioStat(histL, local, stats, EstadisticaPartido::getRematesTotales, x -> x.getLocal().getId().equals(local)),
+				promedioStat(histV, visita, stats, EstadisticaPartido::getRematesTotales, x -> x.getVisita().getId().equals(visita)),
 				racha(histL, local),
 				racha(histV, visita),
 				h2h,
@@ -182,18 +182,33 @@ public class EntradasService {
 		return x.getLocal().getId().equals(equipo) ? x.getGolesVisita() : x.getGolesLocal();
 	}
 
-	/** Promedio por partido de una estadística del equipo; null si hay menos de 3 partidos con el dato. */
+	/**
+	 * Promedio por partido de una estadística del equipo, mirando cómo juega en esa condición (el local en casa,
+	 * el visitante fuera) si tiene al menos 3 partidos así con el dato; si no, todos sus partidos.
+	 * null si hay menos de 3 partidos con el dato.
+	 */
 	private static Double promedioStat(List<Partido> hist, Long equipo,
+			Map<EstadisticaPartido.Clave, EstadisticaPartido> stats, Function<EstadisticaPartido, Integer> valor,
+			java.util.function.Predicate<Partido> condicion) {
+		List<Integer> enCondicion = valores(hist.stream().filter(condicion).toList(), equipo, stats, valor);
+		if (enCondicion.size() >= Entradas.MINIMO_PARTIDOS) {
+			return enCondicion.stream().mapToInt(Integer::intValue).average().orElse(0);
+		}
+		List<Integer> todos = valores(hist, equipo, stats, valor);
+		return todos.size() < Entradas.MINIMO_PARTIDOS ? null
+				: todos.stream().mapToInt(Integer::intValue).average().orElse(0);
+	}
+
+	private static List<Integer> valores(List<Partido> hist, Long equipo,
 			Map<EstadisticaPartido.Clave, EstadisticaPartido> stats, Function<EstadisticaPartido, Integer> valor) {
-		List<Integer> valores = new ArrayList<>();
+		List<Integer> out = new ArrayList<>();
 		for (Partido x : hist) {
 			EstadisticaPartido s = stats.get(new EstadisticaPartido.Clave(x.getId(), equipo));
 			if (s != null && valor.apply(s) != null) {
-				valores.add(valor.apply(s));
+				out.add(valor.apply(s));
 			}
 		}
-		return valores.size() < Entradas.MINIMO_PARTIDOS ? null
-				: valores.stream().mapToInt(Integer::intValue).average().orElse(0);
+		return out;
 	}
 
 	/** Últimos 5 como G/E/P, del más antiguo al más reciente. */

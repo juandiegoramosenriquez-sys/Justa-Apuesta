@@ -26,7 +26,11 @@ export function diaCorto(iso: string): string {
 export function etiquetaFecha(iso: string, estado: EstadoPartido): string {
   const d = new Date(iso)
   if (estado === 'JUGADO') return `${diaCorto(iso)} · Final`
-  if (estado === 'EN_VIVO') return `${esHoy(d) ? 'Hoy' : diaCorto(iso)} · En vivo`
+  if (estado === 'EN_VIVO') {
+    // Más de 2 h 30 min desde que empezó: ya terminó, falta que llegue el resultado
+    const esperando = Date.now() - d.getTime() > 150 * 60_000
+    return `${esHoy(d) ? 'Hoy' : diaCorto(iso)} · ${esperando ? 'Esperando resultado' : 'En vivo'}`
+  }
   if (estado === 'SUSPENDIDO') return `${diaCorto(iso)} · Suspendido`
   return `${esHoy(d) ? 'Hoy' : diaCorto(iso)} · ${hora.format(d)}`
 }

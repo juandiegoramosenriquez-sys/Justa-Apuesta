@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -56,6 +57,7 @@ public class SincronizacionService {
 	private final SyncEstadoRepository syncEstadoRepository;
 	private final AnalisisCacheRepository cacheRepository;
 	private final TransactionTemplate tx;
+	private final ApplicationEventPublisher eventos;
 	private final JustaProperties props;
 	private final AtomicBoolean enCurso = new AtomicBoolean(false);
 	private final AtomicBoolean extraEnCurso = new AtomicBoolean(false);
@@ -93,10 +95,14 @@ public class SincronizacionService {
 		}
 	}
 
-	/** Con datos nuevos, los análisis guardados de partidos por jugar se recalculan al próximo pedido. */
+	/**
+	 * Con datos nuevos: se borran los análisis hechos después de empezar el partido y se avisa para recalcular en
+	 * segundo plano los de partidos por jugar (mientras tanto se sigue mostrando lo guardado, sin hacer esperar).
+	 */
 	private void recalcularAnalisis() {
 		int n = tx.execute(s -> cacheRepository.borrarRecalculables(Instant.now()));
-		log.info("Análisis por recalcular: {}", n);
+		log.info("Análisis borrados por recalcular: {}", n);
+		eventos.publishEvent(new DatosActualizadosEvent());
 	}
 
 	private void ejecutarApiFootball() {
