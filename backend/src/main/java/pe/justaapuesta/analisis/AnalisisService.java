@@ -157,8 +157,10 @@ public class AnalisisService {
 	// ---------- Tarjetas de partido ----------
 
 	public List<PartidoResumenDto> resumenes(List<Partido> partidos, Long usuarioId) {
-		Modo modo = modoDe(usuarioId);
-		Set<Long> favoritos = Set.copyOf(favoritoRepository.partidosDe(usuarioId));
+		return resumenes(partidos, modoDe(usuarioId), favoritosDe(usuarioId));
+	}
+
+	public List<PartidoResumenDto> resumenes(List<Partido> partidos, Modo modo, Set<Long> favoritos) {
 		Map<Long, Entradas> entradas = entradas(partidos);
 		Map<Long, Motor.Final> finales = finales(partidos);
 		return partidos.stream()
@@ -316,7 +318,11 @@ public class AnalisisService {
 		return new FinalDto(f.gh(), f.ga(), f.cor(), f.cards(), f.sot(), r.toString());
 	}
 
-	private Modo modoDe(Long usuarioId) {
+	public Set<Long> favoritosDe(Long usuarioId) {
+		return Set.copyOf(favoritoRepository.partidosDe(usuarioId));
+	}
+
+	public Modo modoDe(Long usuarioId) {
 		return usuarioRepository.findById(usuarioId).map(Usuario::getModo).orElse(Modo.SEGURO);
 	}
 

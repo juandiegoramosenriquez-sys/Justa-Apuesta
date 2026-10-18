@@ -110,7 +110,7 @@ Todo es **real** y **gratis**; nada se inventa. El frontend nunca llama a estas 
 - **Búsqueda:** si un equipo no está guardado, se busca en TheSportsDB y se bajan sus partidos recientes y próximos. Cada búsqueda se recuerda 7 días.
 - Los equipos que vienen de varias fuentes se unen por nombre y país.
 - Si se acaban las consultas del día, la app sigue mostrando lo guardado.
-- **Carga rápida:** el análisis de los partidos de las pestañas se calcula de antemano en segundo plano (al arrancar y después de cada sincronización). Quien abre la web ve lo guardado al instante; si está viejo, se recalcula aparte sin hacer esperar.
+- **Carga rápida:** el análisis de los partidos de las pestañas se calcula de antemano en segundo plano (al arrancar y después de cada sincronización), y las listas de cada pestaña y de Picks quedan **armadas en memoria** por modo. Abrir la web solo lee esa lista (en local, ~20–30 ms). Si una lista tiene más de 3 minutos, se rehace aparte sin hacer esperar. Las respuestas de más de 1 segundo quedan anotadas en el log ("Respuesta lenta").
 - **Corners, tarjetas y remates** solo vienen de API-Football (1 consulta por partido, solo de ayer/hoy/mañana en el plan gratis). Aparecen cuando cada equipo junta 3 partidos con esas estadísticas, así que en una base nueva tardan unas semanas en salir. Se mira cómo juega el local en casa y el visitante fuera cuando hay datos suficientes.
 
 ---

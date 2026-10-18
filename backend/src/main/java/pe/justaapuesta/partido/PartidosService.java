@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ import pe.justaapuesta.historial.TheSportsDbService;
 import pe.justaapuesta.proveedor.ProveedorException;
 import pe.justaapuesta.sync.SincronizacionService;
 import pe.justaapuesta.sync.SyncEstado;
+import pe.justaapuesta.usuario.Modo;
 import pe.justaapuesta.usuario.UsuarioRepository;
 
 /**
@@ -39,6 +41,7 @@ import pe.justaapuesta.usuario.UsuarioRepository;
 @RequiredArgsConstructor
 public class PartidosService {
 
+	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PartidosService.class);
 	private static final int MAX_RESULTADOS = 40;
 	/** En la búsqueda: próximos y últimos partidos de cada equipo encontrado. */
 	private static final int POR_EQUIPO = 5;
@@ -65,11 +68,70 @@ public class PartidosService {
 	 * con poco historial siguen apareciendo al buscarlos.
 	 */
 	public ListaPartidosDto listar(Pestana pestana, Long usuarioId) {
-		List<PartidoResumenDto> conConsejo = analisis.resumenes(partidosDe(pestana), usuarioId).stream()
+		Set<Long> favoritos = analisis.favoritosDe(usuarioId);
+		Instant ahora = Instant.now();
+		List<PartidoResumenDto> lista = listaBase(pestana, analisis.modoDe(usuarioId)).stream()
+				// La lista guardada puede tener unos minutos: los que ya empezaron no se muestran en Hoy
+				.filter(r -> pestana != Pestana.HOY || r.fecha().isAfter(ahora))
+				.map(r -> r.conFavorito(favoritos.contains(r.id())))
+				.toList();
+		return new ListaPartidosDto(ordenarPorLigasFavoritas(lista, usuarioId), actualizadoEn(),
+				avisoSiDesactualizado());
+	}
+
+	// ---------- Listas listas en memoria (para que la web cargue en 1-2 segundos) ----------
+
+	/** Una lista se rehace como mucho cada 3 minutos; mientras tanto se sirve la guardada. */
+	private static final Duration VIGENCIA_LISTA = Duration.ofMinutes(3);
+
+	private record ClaveLista(Pestana pestana, Modo modo) {
+	}
+
+	private record ListaGuardada(Instant hecha, List<PartidoResumenDto> lista) {
+	}
+
+	private final Map<ClaveLista, ListaGuardada> listas = new ConcurrentHashMap<>();
+	private final Set<ClaveLista> rehaciendo = ConcurrentHashMap.newKeySet();
+
+	/**
+	 * Partidos de la pestaña con su consejo, ya calculados (sin favoritos, que son de cada usuario). Si la lista
+	 * guardada está vieja se rehace aparte y se responde con la guardada: nadie espera el cálculo.
+	 */
+	private List<PartidoResumenDto> listaBase(Pestana pestana, Modo modo) {
+		ClaveLista clave = new ClaveLista(pestana, modo);
+		ListaGuardada g = listas.get(clave);
+		if (g == null) {
+			return rehacer(clave);
+		}
+		if (g.hecha().isBefore(Instant.now().minus(VIGENCIA_LISTA)) && rehaciendo.add(clave)) {
+			Thread.ofVirtual().name("lista-" + pestana).start(() -> {
+				try {
+					rehacer(clave);
+				} catch (RuntimeException e) {
+					log.warn("No se pudo rehacer la lista {}: {}", clave, e.getMessage());
+				} finally {
+					rehaciendo.remove(clave);
+				}
+			});
+		}
+		return g.lista();
+	}
+
+	private List<PartidoResumenDto> rehacer(ClaveLista clave) {
+		List<PartidoResumenDto> lista = analisis.resumenes(partidosDe(clave.pestana()), clave.modo(), Set.of()).stream()
 				.filter(r -> r.consejo() != null)
 				.toList();
-		return new ListaPartidosDto(ordenarPorLigasFavoritas(conConsejo, usuarioId), actualizadoEn(),
-				avisoSiDesactualizado());
+		listas.put(clave, new ListaGuardada(Instant.now(), lista));
+		return lista;
+	}
+
+	/** Rehace todas las listas (después de precalcular los análisis), así la próxima visita no espera. */
+	public void rehacerListas() {
+		for (Pestana p : Pestana.values()) {
+			for (Modo m : Modo.values()) {
+				rehacer(new ClaveLista(p, m));
+			}
+		}
 	}
 
 	/** Partidos de una pestaña, solo de las ligas configuradas (también para Picks). */

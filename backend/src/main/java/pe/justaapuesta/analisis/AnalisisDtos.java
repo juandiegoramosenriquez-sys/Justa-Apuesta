@@ -38,6 +38,11 @@ public final class AnalisisDtos {
 			boolean favorito,
 			/** null si no hay datos suficientes para analizar */
 			ConsejoDto consejo) {
+
+		public PartidoResumenDto conFavorito(boolean f) {
+			return f == favorito ? this
+					: new PartidoResumenDto(id, fecha, liga, estadio, estado, local, visita, golesLocal, golesVisita, f, consejo);
+		}
 	}
 
 	/** Lista con la hora de la última actualización y un aviso suave si el proveedor falló. */

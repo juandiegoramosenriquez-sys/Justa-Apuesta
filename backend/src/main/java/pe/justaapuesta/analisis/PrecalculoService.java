@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import pe.justaapuesta.partido.Partido;
 import pe.justaapuesta.partido.PartidosService;
+import pe.justaapuesta.picks.PicksService;
 import pe.justaapuesta.sync.DatosActualizadosEvent;
 
 /**
@@ -30,6 +31,7 @@ public class PrecalculoService {
 	private final PartidosService partidos;
 	private final AnalisisService analisis;
 	private final PrecisionService precision;
+	private final PicksService picks;
 	private final AtomicBoolean enCurso = new AtomicBoolean(false);
 
 	@EventListener(ApplicationReadyEvent.class)
@@ -61,6 +63,9 @@ public class PrecalculoService {
 						}
 					}
 				}
+				// Con los análisis listos, las listas de cada pestaña quedan armadas en memoria
+				partidos.rehacerListas();
+				picks.rehacerPicks();
 				log.info("Análisis precalculados: {} partidos en {} s", n, (System.currentTimeMillis() - inicio) / 1000);
 			} finally {
 				enCurso.set(false);

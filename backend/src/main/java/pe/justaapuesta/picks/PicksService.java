@@ -64,12 +64,57 @@ public class PicksService {
 		if (pestana == PartidosService.Pestana.JUGADO) {
 			throw new SolicitudInvalidaException("Los picks solo son de hoy o próximos.");
 		}
-		Modo modo = modo(usuarioId);
-		List<Partido> lista = partidos.partidosDe(pestana).stream()
+		Candidatos c = candidatos(pestana, modo(usuarioId));
+		// Lo guardado puede tener unos minutos: los partidos que ya empezaron salen de los picks
+		Instant ahora = Instant.now();
+		List<PickPartidoDto> blindados = c.blindados().stream().filter(x -> x.fecha().isAfter(ahora)).toList();
+		List<PickPartidoDto> mejores = c.mejores().stream().filter(x -> x.fecha().isAfter(ahora)).limit(MEJORES).toList();
+
+		List<CombinadaDto> combinadas = new ArrayList<>();
+		if (blindados.size() == 1) {
+			combinadas.add(combinada("MUY_SEGURA", "Pick blindado", blindados));
+		}
+		for (int i = 0; i < TAMANOS.length && blindados.size() >= TAMANOS[i]; i++) {
+			combinadas.add(combinada(NIVELES[i][0], NIVELES[i][1], blindados.subList(0, TAMANOS[i])));
+		}
+		return new PicksDelDiaDto(combinadas, mejores);
+	}
+
+	/** Picks ya ordenados de una pestaña y un modo: el mejor blindado de cada partido y los mejores del modo. */
+	private record Candidatos(Instant hechos, List<PickPartidoDto> blindados, List<PickPartidoDto> mejores) {
+	}
+
+	private record Clave(PartidosService.Pestana pestana, Modo modo) {
+	}
+
+	/** Se rehacen como mucho cada 3 minutos; mientras tanto se responde con lo guardado (carga al instante). */
+	private static final java.time.Duration VIGENCIA = java.time.Duration.ofMinutes(3);
+	private final Map<Clave, Candidatos> guardados = new java.util.concurrent.ConcurrentHashMap<>();
+	private final java.util.Set<Clave> rehaciendo = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+	private Candidatos candidatos(PartidosService.Pestana pestana, Modo modo) {
+		Clave clave = new Clave(pestana, modo);
+		Candidatos c = guardados.get(clave);
+		if (c == null) {
+			return calcular(clave);
+		}
+		if (c.hechos().isBefore(Instant.now().minus(VIGENCIA)) && rehaciendo.add(clave)) {
+			Thread.ofVirtual().name("picks-" + pestana).start(() -> {
+				try {
+					calcular(clave);
+				} finally {
+					rehaciendo.remove(clave);
+				}
+			});
+		}
+		return c;
+	}
+
+	private Candidatos calcular(Clave clave) {
+		List<Partido> lista = partidos.partidosDe(clave.pestana()).stream()
 				.filter(p -> p.getFechaHoraUtc().isAfter(Instant.now()))
 				.toList();
 		Map<Long, Entradas> entradas = analisis.entradas(lista);
-
 		List<PickPartidoDto> blindados = new ArrayList<>();
 		List<PickPartidoDto> mejores = new ArrayList<>();
 		for (Partido p : lista) {
@@ -80,19 +125,23 @@ public class PicksService {
 			Motor.allPicks(e).stream().filter(m -> m.blindado() && Motor.jugable(m))
 					.max(Comparator.comparingInt(Motor.Mercado::pct))
 					.ifPresent(m -> blindados.add(dto(p, m)));
-			Motor.picksFor(e, modo).stream().filter(Motor::jugable).map(m -> dto(p, m)).sorted(ORDEN).limit(2)
+			Motor.picksFor(e, clave.modo()).stream().filter(Motor::jugable).map(m -> dto(p, m)).sorted(ORDEN).limit(2)
 					.forEach(mejores::add);
 		}
 		blindados.sort(ORDEN);
+		mejores.sort(ORDEN);
+		Candidatos c = new Candidatos(Instant.now(), List.copyOf(blindados), List.copyOf(mejores));
+		guardados.put(clave, c);
+		return c;
+	}
 
-		List<CombinadaDto> combinadas = new ArrayList<>();
-		if (blindados.size() == 1) {
-			combinadas.add(combinada("MUY_SEGURA", "Pick blindado", blindados));
+	/** Rehace los picks de hoy y próximos en todos los modos (después de precalcular los análisis). */
+	public void rehacerPicks() {
+		for (PartidosService.Pestana p : List.of(PartidosService.Pestana.HOY, PartidosService.Pestana.PROXIMO)) {
+			for (Modo m : Modo.values()) {
+				calcular(new Clave(p, m));
+			}
 		}
-		for (int i = 0; i < TAMANOS.length && blindados.size() >= TAMANOS[i]; i++) {
-			combinadas.add(combinada(NIVELES[i][0], NIVELES[i][1], blindados.subList(0, TAMANOS[i])));
-		}
-		return new PicksDelDiaDto(combinadas, mejores.stream().sorted(ORDEN).limit(MEJORES).toList());
 	}
 
 	private static CombinadaDto combinada(String nivel, String nombre, List<PickPartidoDto> picks) {
