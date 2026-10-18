@@ -339,20 +339,28 @@
 }
 
 /* Mercados */
+/* Pestañas de mercados: se deslizan a los lados si no caben */
 .pestanas {
-  display: grid;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
   gap: 4px;
   background: var(--superficie);
   border-radius: 14px;
   padding: 4px;
 }
+.pestanas::-webkit-scrollbar {
+  display: none;
+}
 .pestana {
+  flex: 1 0 auto;
+  min-width: 92px;
   height: 44px;
   border: 0;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  padding: 0;
+  padding: 0 14px;
   background: transparent;
   color: var(--texto-inactivo);
 }

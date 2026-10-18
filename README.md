@@ -123,9 +123,16 @@ Código: `backend/src/main/java/pe/justaapuesta/analisis/` (`Motor.java` y `Entr
 2. **Ajuste por liga:** si un equipo tiene pocos partidos, su número se acerca al promedio de su liga (con 10 partidos la liga pesa 1/3; con 5, la mitad). Así una goleada no exagera todo.
 3. **Forma y localía:** ±10% según la racha y +5% / −5% por jugar de local o visita.
 4. **Modelo de Poisson con corrección de Dixon-Coles:** da la probabilidad de cada marcador (0-0, 1-0…), corrigiendo los marcadores bajos que el Poisson simple calcula mal.
-5. **Mercados:** solo las líneas que ofrecen las casas: goles más de 1.5 / 2.5 / 3.5, ambos marcan, cada equipo marca, corners 7.5 a 10.5, tarjetas 2.5 a 5.5, remates y ganador / doble oportunidad. Una categoría sin datos reales (por ejemplo, sin corners) no se muestra.
+5. **Mercados:** solo las líneas que ofrecen las casas, en 8 categorías:
+   - **Goles:** más de 1.5 / 2.5 / 3.5, menos de 2.5 / 3.5, ambos marcan sí / no.
+   - **Equipos:** cada equipo marca, cada equipo más de 1.5 goles, cada equipo no recibe gol.
+   - **Combinados:** gana y más de 1.5 goles, local o empate y menos de 3.5, ambos marcan y más de 2.5, gana sin recibir gol.
+   - **Corners** 7.5 a 10.5 y por equipo, **tarjetas** 2.5 a 5.5, **remates a puerta** y **remates totales** (cuando hay estadísticas).
+   - **Ganador:** 1 X 2, doble oportunidad y "no hay empate".
+
+   Una categoría sin datos reales (por ejemplo, sin corners) no se muestra.
 6. **Certeza final:** 55% el modelo + 30% lo que de verdad pasó en los últimos partidos de ambos equipos + 15% la liga.
-7. **Pick blindado:** solo si la certeza final es **82% o más** y pasa **las 5 pruebas**:
+7. **Pick blindado:** solo si la certeza final es **82% o más**, el mercado no está entre los que la medición mostró que prometen de más (menos de 3.5, más de 2.5, ambos marcan, cada equipo más de 1.5) y pasa **las 5 pruebas**:
    - el modelo da 75% o más;
    - el local lo cumplió en **8 de cada 10** de sus partidos;
    - el visitante, igual;

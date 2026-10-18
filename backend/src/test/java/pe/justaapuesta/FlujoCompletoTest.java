@@ -116,7 +116,7 @@ class FlujoCompletoTest {
 				.andExpect(jsonPath("$.partido.local.nombre").value("Atlético Madrid"))
 				.andExpect(jsonPath("$.partido.visita.nombre").value("Real Madrid"))
 				.andExpect(jsonPath("$.h2h.n").value(org.hamcrest.Matchers.greaterThanOrEqualTo(3)))
-				.andExpect(jsonPath("$.categorias.length()").value(6))
+				.andExpect(jsonPath("$.categorias.length()").value(8))
 				.andExpect(jsonPath("$.consejo.clave").exists())
 				.andExpect(jsonPath("$.consejo.cuota").isNumber())
 				.andExpect(jsonPath("$.categorias[0].mercados[0].pruebas.length()").value(5))

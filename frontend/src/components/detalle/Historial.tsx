@@ -91,7 +91,7 @@ export function MarketTabs({ a }: { a: Analisis }) {
   return (
     <section className={ui.seccion}>
       <h2 className={ui.tituloSeccion}>Todos los mercados</h2>
-      <div className={s.pestanas} role="tablist" style={{ gridTemplateColumns: `repeat(${a.categorias.length}, minmax(0, 1fr))` }}>
+      <div className={s.pestanas} role="tablist">
         {a.categorias.map((c) => (
           <button key={c.clave} type="button" role="tab" aria-selected={c.clave === cat.clave}
             className={`${s.pestana} ${c.clave === cat.clave ? s.pestanaActiva : ''}`} onClick={() => setTab(c.clave)}>

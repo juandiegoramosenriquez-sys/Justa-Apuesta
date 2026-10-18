@@ -55,17 +55,23 @@ class MotorTest {
 	}
 
 	@Test
-	void seisCategoriasDeSeisMercados() {
+	void categoriasConSusMercados() {
 		List<Motor.Categoria> cats = Motor.markets(entradas(null, 9.0));
 		assertThat(cats).extracting(Motor.Categoria::clave)
-				.containsExactly("goles", "corners", "tarjetas", "remates", "tiros", "resultado");
-		assertThat(cats).allSatisfy(c -> assertThat(c.mercados()).hasSize(6));
-		assertThat(cats.get(0).mercados().get(4).texto()).isEqualTo("Local FC marca");
+				.containsExactly("goles", "equipos", "combinados", "corners", "tarjetas", "remates", "tiros", "resultado");
+		assertThat(cats.get(0).mercados()).hasSize(7);
+		assertThat(cats.subList(1, cats.size())).allSatisfy(c -> assertThat(c.mercados()).hasSize(6));
+		assertThat(cats.get(1).mercados().get(0).texto()).isEqualTo("Local FC marca");
+		assertThat(cats.get(3).mercados().get(5).texto()).isEqualTo("Visita FC más de 3.5 corners");
+		assertThat(cats.get(6).mercados().get(4).texto()).isEqualTo("Local FC más de 9.5 remates");
+		assertThat(cats.get(7).mercados().get(0).texto()).isEqualTo("Gana Local FC");
 		// Solo líneas que existen en las casas: no hay "más de 0.5 goles"
-		assertThat(cats.get(0).mercados()).extracting(Motor.Mercado::clave).doesNotContain("goles.o05");
-		assertThat(cats.get(1).mercados().get(5).texto()).isEqualTo("Visita FC más de 3.5 corners");
-		assertThat(cats.get(4).mercados().get(4).texto()).isEqualTo("Local FC más de 9.5 remates");
-		assertThat(cats.get(5).mercados().get(0).texto()).isEqualTo("Gana Local FC");
+		assertThat(Motor.allPicks(entradas(null, 9.0))).extracting(Motor.Mercado::clave).doesNotContain("goles.o05");
+		// Más y menos de la misma línea suman 100%
+		java.util.Map<String, Integer> pct = new java.util.HashMap<>();
+		Motor.allPicks(entradas(null, 9.0)).forEach(m -> pct.put(m.clave(), m.modelo()));
+		assertThat(pct.get("goles.o25") + pct.get("goles.u25")).isBetween(99, 101);
+		assertThat(pct.get("goles.btts") + pct.get("goles.btts_no")).isBetween(99, 101);
 	}
 
 	@Test
@@ -129,6 +135,15 @@ class MotorTest {
 		assertThat(salio.get("resultado.local")).isTrue();
 		assertThat(salio.get("resultado.empate")).isFalse();
 		assertThat(salio.get("resultado.sin_empate")).isTrue();
+		// Mercados nuevos con el 2-1
+		assertThat(salio.get("goles.u35")).isTrue();
+		assertThat(salio.get("goles.u25")).isFalse();
+		assertThat(salio.get("goles.btts_no")).isFalse();
+		assertThat(salio.get("equipos.local15")).isTrue();
+		assertThat(salio.get("equipos.local_cero")).isFalse();
+		assertThat(salio.get("combo.local_o15")).isTrue();
+		assertThat(salio.get("combo.btts_o25")).isTrue();
+		assertThat(salio.get("combo.local_cero")).isFalse();
 
 		// Sin estadísticas finales, los mercados de corners no se pueden comprobar (null), los de goles sí
 		Motor.Final soloGoles = new Motor.Final(0, 0, null, null, null, null, null, null, null, null, null);

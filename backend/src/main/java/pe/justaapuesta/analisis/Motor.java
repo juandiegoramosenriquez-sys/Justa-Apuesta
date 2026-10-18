@@ -253,9 +253,35 @@ public final class Motor {
 				mk("goles.o15", "Más de 1.5 goles", suma(mx, (i, j) -> i + j > 1), f -> f.tot() > 1.5),
 				mk("goles.o25", "Más de 2.5 goles", suma(mx, (i, j) -> i + j > 2), f -> f.tot() > 2.5),
 				mk("goles.o35", "Más de 3.5 goles", suma(mx, (i, j) -> i + j > 3), f -> f.tot() > 3.5),
+				mk("goles.u25", "Menos de 2.5 goles", suma(mx, (i, j) -> i + j < 3), f -> f.tot() < 2.5),
+				mk("goles.u35", "Menos de 3.5 goles", suma(mx, (i, j) -> i + j < 4), f -> f.tot() < 3.5),
 				mk("goles.btts", "Ambos marcan", suma(mx, (i, j) -> i > 0 && j > 0), f -> f.gh() > 0 && f.ga() > 0),
+				mk("goles.btts_no", "Ambos marcan: No", suma(mx, (i, j) -> i == 0 || j == 0),
+						f -> f.gh() == 0 || f.ga() == 0))));
+
+		// Goles de cada equipo
+		cats.add(cat("equipos", "Equipos", L + " " + f1(m.xh()) + " · " + V + " " + f1(m.xa()) + " goles esperados", List.of(
 				mk("goles.local", L + " marca", suma(mx, (i, j) -> i > 0), f -> f.gh() > 0),
-				mk("goles.visita", V + " marca", suma(mx, (i, j) -> j > 0), f -> f.ga() > 0))));
+				mk("goles.visita", V + " marca", suma(mx, (i, j) -> j > 0), f -> f.ga() > 0),
+				mk("equipos.local15", L + " más de 1.5 goles", suma(mx, (i, j) -> i > 1), f -> f.gh() > 1),
+				mk("equipos.visita15", V + " más de 1.5 goles", suma(mx, (i, j) -> j > 1), f -> f.ga() > 1),
+				mk("equipos.local_cero", L + " no recibe gol", suma(mx, (i, j) -> j == 0), f -> f.ga() == 0),
+				mk("equipos.visita_cero", V + " no recibe gol", suma(mx, (i, j) -> i == 0), f -> f.gh() == 0))));
+
+		// Combinados: dos condiciones en el mismo partido (las casas los llaman "resultado y goles")
+		cats.add(cat("combinados", "Combinados", "Ganador y goles en el mismo partido", List.of(
+				mk("combo.local_o15", "Gana " + L + " y más de 1.5 goles", suma(mx, (i, j) -> i > j && i + j > 1),
+						f -> f.gh() > f.ga() && f.tot() > 1.5),
+				mk("combo.visita_o15", "Gana " + V + " y más de 1.5 goles", suma(mx, (i, j) -> j > i && i + j > 1),
+						f -> f.ga() > f.gh() && f.tot() > 1.5),
+				mk("combo.local_empate_u35", L + " o empate y menos de 3.5 goles", suma(mx, (i, j) -> i >= j && i + j < 4),
+						f -> f.gh() >= f.ga() && f.tot() < 3.5),
+				mk("combo.btts_o25", "Ambos marcan y más de 2.5 goles", suma(mx, (i, j) -> i > 0 && j > 0 && i + j > 2),
+						f -> f.gh() > 0 && f.ga() > 0 && f.tot() > 2.5),
+				mk("combo.local_cero", "Gana " + L + " sin recibir gol", suma(mx, (i, j) -> i > j && j == 0),
+						f -> f.gh() > f.ga() && f.ga() == 0),
+				mk("combo.visita_cero", "Gana " + V + " sin recibir gol", suma(mx, (i, j) -> j > i && i == 0),
+						f -> f.ga() > f.gh() && f.gh() == 0))));
 
 		Double cor = e.cor(), hs = e.hs();
 		if (cor != null && hs != null) {
@@ -336,6 +362,12 @@ public final class Motor {
 	 * cada partido): con 82% y cuota desde 1.05 el blindado acertó el 84%; con 75% acertaba el 78%.
 	 */
 	static final int CERTEZA_BLINDADO = 82;
+	/**
+	 * Mercados que nunca son blindados: medido en 867 partidos jugados, aciertan 4-6 puntos menos de lo que dice
+	 * su % (menos de 3.5 goles, más de 2.5, ambos marcan, cada equipo más de 1.5). Se muestran igual con su %.
+	 */
+	static final java.util.Set<String> NO_BLINDABLES = java.util.Set.of("goles.u35", "goles.o25", "goles.btts",
+			"equipos.local15", "equipos.visita15");
 	static final double EQUIPO_MIN = 0.8;
 	static final double H2H_MIN = 0.67;
 	static final double LIGA_MIN = 0.7;
@@ -399,7 +431,8 @@ public final class Motor {
 			pct = 0.75 * modelo + 0.25 * (pl != null ? tl : tv).valor() * 100;
 		}
 		int fin = Math.max(1, Math.min(99, redondear(pct)));
-		boolean blindado = modelo >= MODELO_MIN && fin >= CERTEZA_BLINDADO && Boolean.TRUE.equals(pl)
+		boolean blindado = !NO_BLINDABLES.contains(clave) && modelo >= MODELO_MIN && fin >= CERTEZA_BLINDADO
+				&& Boolean.TRUE.equals(pl)
 				&& Boolean.TRUE.equals(pv) && !Boolean.FALSE.equals(ph) && !Boolean.FALSE.equals(pg);
 		return new Mercado(clave, categoria, nombreCategoria, texto, fin, check, modelo, pruebas, blindado);
 	}
