@@ -1,28 +1,22 @@
 /*
- * Tokens de diseño de Justa Apuesta.
+ * Tokens de diseño de Justa Apuesta (estilo "Neón oscuro + Eléctrico degradado").
  * Tema: <html data-modo="oscuro|claro"> (el "auto" lo resuelve lib/apariencia.ts).
- * Color: <html data-acento="limon|verde|celeste|morado|naranja">.
+ * Color: <html data-acento="limon|verde|celeste|morado|naranja">. En oscuro los negros van teñidos del acento.
  * El verde de "probable" y el rojo de "evita" no cambian con el acento: siempre significan lo mismo.
  */
 
-/* ---------- Oscuro (por defecto): negro profundo, blanco claro ---------- */
+/* ---------- Oscuro (por defecto): negro teñido, neón ---------- */
 :root {
   color-scheme: dark;
 
-  /* Fondos */
-  --fondo-app: #070908;
-  --fondo-exterior: #030403;
-  --superficie: #101512;
-  --borde: #1F2924;
-  --barra-inferior: #0B0F0D;
   /* Capa sobre una tarjeta de color (pruebas del pick, fondo del boleto abierto) */
   --capa: rgba(2, 4, 3, 0.5);
   --velo: rgba(2, 4, 3, 0.65);
 
   /* Texto */
-  --texto: #F5F8F6;
-  --texto-secundario: #9EB0A6;
-  --texto-apagado: #71857A;
+  --texto: #F3F7F4;
+  --texto-secundario: #A8B6AE;
+  --texto-apagado: #76857C;
   --texto-inactivo: #B7C5BD;
   --texto-etiqueta: #CDD9D2;
   --texto-suave: #DEE7E2;
@@ -40,139 +34,221 @@
   /* Neutros y tono medio */
   --neutro-1: #2A3530;
   --neutro-2: #3B4842;
-  --neutro-3: #18201C;
   --lavanda: #93A79C;
 
-  /* Acento (limón por defecto): marca, botones, lo activo */
-  --acento: #C6F432;
-  --acento-barra: #A9D628;
-  --acento-texto: #C6F432;
-  --acento-texto-claro: #DBFB7E;
-  --acento-fondo: #161E0D;
-  --acento-fondo-2: #1D2811;
-  --acento-fondo-3: #0C1109;
-  --acento-borde: #34461B;
-  --sobre-acento: #0A0F06;
+  /* Lo que va encima del acento (botón activo) y el brillo neón */
+  --sobre-acento: #071006;
+  --cabecera-titulo: var(--acento);
+  --cabecera-texto: var(--texto-secundario);
+  --linea-neon: rgba(var(--acento-rgb), 0.55);
+  --halo: 0 0 18px rgba(var(--acento-rgb), 0.28);
+  --borde-neon: rgba(var(--acento-rgb), 0.47);
 
   /* Letras: Times (Tinos) para títulos y números; Inter para el texto, que se lee mejor en chico */
   --fuente-titulo: 'Tinos', 'Times New Roman', Times, serif;
   --fuente-cuerpo: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Acento limón */
+  --fondo-app: #060905;
+  --fondo-exterior: #030503;
+  --superficie: #111A0D;
+  --borde: #26341B;
+  --barra-inferior: #0B1109;
+  --neutro-3: #182312;
+  --acento: #C6F432;
+  --acento-rgb: 198, 244, 50;
+  --acento-barra: #A8CF2A;
+  --acento-texto: #C6F432;
+  --acento-texto-claro: #E3FB9E;
+  --acento-fondo: #1C280E;
+  --acento-fondo-2: #26360E;
+  --acento-fondo-3: #0D130A;
+  --acento-borde: #4E6617;
+  --cabecera: linear-gradient(90deg, #060905 0%, #1A2A06 50%, #567115 100%);
 }
 
 :root[data-acento='verde'] {
+  --fondo-app: #050A07;
+  --fondo-exterior: #030604;
+  --superficie: #0E1C14;
+  --borde: #1F3A2B;
+  --barra-inferior: #09120D;
+  --neutro-3: #14261C;
   --acento: #2EE58A;
-  --acento-barra: #22C477;
-  --acento-texto: #4BEA9C;
-  --acento-texto-claro: #9BF0C2;
-  --acento-fondo: #0C2417;
-  --acento-fondo-2: #103020;
-  --acento-fondo-3: #08160E;
-  --acento-borde: #1D4A30;
-  --sobre-acento: #04140B;
+  --acento-rgb: 46, 229, 138;
+  --acento-barra: #27C375;
+  --acento-texto: #2EE58A;
+  --acento-texto-claro: #A7F3D0;
+  --acento-fondo: #0C2B1C;
+  --acento-fondo-2: #0B3A25;
+  --acento-fondo-3: #0A150F;
+  --acento-borde: #14653E;
+  --cabecera: linear-gradient(90deg, #050A07 0%, #06301C 50%, #146F42 100%);
 }
 :root[data-acento='celeste'] {
-  --acento: #38BDF8;
-  --acento-barra: #0EA5E9;
-  --acento-texto: #5CCBFA;
-  --acento-texto-claro: #A5E3FD;
-  --acento-fondo: #0C1E2B;
-  --acento-fondo-2: #102838;
-  --acento-fondo-3: #08131C;
-  --acento-borde: #1D4560;
-  --sobre-acento: #04121C;
+  --fondo-app: #060A0B;
+  --fondo-exterior: #030606;
+  --superficie: #14222A;
+  --borde: #2A3F47;
+  --barra-inferior: #0C1519;
+  --neutro-3: #1C2C34;
+  --acento: #22E3FF;
+  --acento-rgb: 34, 227, 255;
+  --acento-barra: #1DC1D9;
+  --acento-texto: #22E3FF;
+  --acento-texto-claro: #A5F3FC;
+  --acento-fondo: #102C35;
+  --acento-fondo-2: #0D3640;
+  --acento-fondo-3: #0E181E;
+  --acento-borde: #126170;
+  --cabecera: linear-gradient(90deg, #060A0B 0%, #0A2C36 50%, #126C7C 100%);
 }
 :root[data-acento='morado'] {
-  --acento: #A78BFA;
-  --acento-barra: #8B5CF6;
-  --acento-texto: #B9A3FB;
-  --acento-texto-claro: #D6CBFD;
-  --acento-fondo: #1A1530;
-  --acento-fondo-2: #221B3D;
-  --acento-fondo-3: #0F0C1D;
-  --acento-borde: #3A2E66;
-  --sobre-acento: #120A2A;
+  --fondo-app: #08070B;
+  --fondo-exterior: #040406;
+  --superficie: #1C1828;
+  --borde: #362E48;
+  --barra-inferior: #110F18;
+  --neutro-3: #252033;
+  --acento: #C08CFF;
+  --acento-rgb: 192, 140, 255;
+  --acento-barra: #A377D9;
+  --acento-texto: #C08CFF;
+  --acento-texto-claro: #E2CCFF;
+  --acento-fondo: #25183D;
+  --acento-fondo-2: #2E1752;
+  --acento-fondo-3: #14111C;
+  --acento-borde: #52347D;
+  --cabecera: linear-gradient(90deg, #08070B 0%, #24104A 50%, #5B3B89 100%);
 }
 :root[data-acento='naranja'] {
-  --acento: #FB923C;
-  --acento-barra: #F97316;
-  --acento-texto: #FCA65F;
-  --acento-texto-claro: #FDCB9E;
-  --acento-fondo: #2A1608;
-  --acento-fondo-2: #361C0A;
-  --acento-fondo-3: #1A0E05;
-  --acento-borde: #5C3214;
-  --sobre-acento: #1F0D02;
+  --fondo-app: #0B0806;
+  --fondo-exterior: #060403;
+  --superficie: #1F150E;
+  --borde: #3D2A1B;
+  --barra-inferior: #140E0A;
+  --neutro-3: #2A1C13;
+  --acento: #FF9F43;
+  --acento-rgb: 255, 159, 67;
+  --acento-barra: #D98739;
+  --acento-texto: #FF9F43;
+  --acento-texto-claro: #FFD3A8;
+  --acento-fondo: #2E1B0B;
+  --acento-fondo-2: #3D2108;
+  --acento-fondo-3: #17100B;
+  --acento-borde: #6E4017;
+  --cabecera: linear-gradient(90deg, #0B0806 0%, #3A1A04 50%, #7F491A 100%);
 }
 
-/* ---------- Claro: blanco suave, texto casi negro ---------- */
+/* ---------- Claro: blanco suave, cabecera con degradado eléctrico ---------- */
 :root[data-modo='claro'] {
   color-scheme: light;
 
-  --fondo-app: #F4F6F2;
-  --fondo-exterior: #E6EBE4;
   --superficie: #FFFFFF;
-  --borde: #DCE3DA;
+  --borde: #DDE3D6;
   --barra-inferior: #FFFFFF;
   --capa: rgba(255, 255, 255, 0.7);
-  --velo: rgba(17, 23, 18, 0.35);
+  --velo: rgba(15, 23, 42, 0.35);
 
-  --texto: #111712;
-  --texto-secundario: #55665C;
-  --texto-apagado: #7A8B81;
-  --texto-inactivo: #46564C;
-  --texto-etiqueta: #2E3A33;
-  --texto-suave: #26302A;
+  --texto: #0F172A;
+  --texto-secundario: #475569;
+  --texto-apagado: #94A3B8;
+  --texto-inactivo: #334155;
+  --texto-etiqueta: #1E293B;
+  --texto-suave: #1E293B;
 
-  --verde: #0E8A4F;
-  --verde-fondo: #E3F6EB;
-  --verde-texto: #0B6B3D;
+  --verde: #16A34A;
+  --verde-fondo: #DCF5E6;
+  --verde-texto: #15803D;
 
-  --rojo: #D7263D;
-  --rojo-fondo: #FDE8EB;
-  --rojo-texto: #A3182B;
+  --rojo: #DC2626;
+  --rojo-fondo: #FCE4E4;
+  --rojo-texto: #B91C1C;
 
   --neutro-1: #D5DDD6;
   --neutro-2: #B9C5BD;
-  --neutro-3: #EEF2EE;
   --lavanda: #7D8F85;
 
-  /* En claro el acento no sirve como texto (no se lee sobre blanco): el texto usa un tono oscuro del mismo color */
-  --acento-texto: #4B6B0A;
+  /* En claro el botón activo es el tono fuerte del acento con letra blanca; el neón solo va en la cabecera */
+  --sobre-acento: #FFFFFF;
+  --cabecera-titulo: #FFFFFF;
+  --cabecera-texto: rgba(255, 255, 255, 0.82);
+  --linea-neon: transparent;
+  --halo: 0 4px 14px rgba(var(--acento-rgb), 0.14);
+  --borde-neon: rgba(var(--acento-rgb), 0.47);
+
+  /* Acento limón */
+  --fondo-app: #F7FBEF;
+  --fondo-exterior: #E3E7DC;
+  --neutro-3: #F2F9E2;
+  --acento: #5B7A0A;
+  --acento-rgb: 91, 122, 10;
+  --acento-barra: #2E3F07;
+  --acento-texto: #5B7A0A;
   --acento-texto-claro: #3D5808;
   --acento-fondo: #EEF7D6;
-  --acento-fondo-2: #E4F1C2;
-  --acento-fondo-3: #F6FBEA;
-  --acento-borde: #C9D9A6;
+  --acento-fondo-2: #DFEAC2;
+  --acento-fondo-3: #F3F9E5;
+  --acento-borde: #C2D199;
+  --cabecera: linear-gradient(90deg, #2E3F07 0%, #5B7A0A 55%, #C6F432 100%);
 }
 :root[data-modo='claro'][data-acento='verde'] {
-  --acento-texto: #0B7A45;
-  --acento-texto-claro: #096238;
-  --acento-fondo: #E2F7EC;
-  --acento-fondo-2: #D2F1E0;
-  --acento-fondo-3: #F2FBF6;
-  --acento-borde: #A9DDBF;
+  --fondo-app: #F0FDF4;
+  --fondo-exterior: #DDE9E0;
+  --neutro-3: #E6FCEE;
+  --acento: #15803D;
+  --acento-rgb: 21, 128, 61;
+  --acento-barra: #14532D;
+  --acento-texto: #15803D;
+  --acento-texto-claro: #166534;
+  --acento-fondo: #DCFCE7;
+  --acento-fondo-2: #C8F0D6;
+  --acento-fondo-3: #E8FDEF;
+  --acento-borde: #A0D7B4;
+  --cabecera: linear-gradient(90deg, #14532D 0%, #15803D 55%, #2EE58A 100%);
 }
 :root[data-modo='claro'][data-acento='celeste'] {
-  --acento-texto: #0369A1;
-  --acento-texto-claro: #075985;
-  --acento-fondo: #E0F2FE;
-  --acento-fondo-2: #CDEBFC;
-  --acento-fondo-3: #F0F9FF;
-  --acento-borde: #A5D8F5;
+  --fondo-app: #F0FCFF;
+  --fondo-exterior: #DDE8EB;
+  --neutro-3: #E0FBFE;
+  --acento: #0891B2;
+  --acento-rgb: 8, 145, 178;
+  --acento-barra: #164E63;
+  --acento-texto: #0891B2;
+  --acento-texto-claro: #155E75;
+  --acento-fondo: #CFFAFE;
+  --acento-fondo-2: #BBF0F6;
+  --acento-fondo-3: #E3FBFF;
+  --acento-borde: #93DAE7;
+  --cabecera: linear-gradient(90deg, #164E63 0%, #0891B2 55%, #00D4F5 100%);
 }
 :root[data-modo='claro'][data-acento='morado'] {
+  --fondo-app: #FAF8FF;
+  --fondo-exterior: #E6E4EB;
+  --neutro-3: #F4F0FE;
+  --acento: #6D28D9;
+  --acento-rgb: 109, 40, 217;
+  --acento-barra: #4C1D95;
   --acento-texto: #6D28D9;
   --acento-texto-claro: #5B21B6;
   --acento-fondo: #EDE9FE;
-  --acento-fondo-2: #E1DAFD;
-  --acento-fondo-3: #F5F3FF;
-  --acento-borde: #C9BCF8;
+  --acento-fondo-2: #E0D6FA;
+  --acento-fondo-3: #F5F2FF;
+  --acento-borde: #C7AFF3;
+  --cabecera: linear-gradient(90deg, #4C1D95 0%, #6D28D9 55%, #B84DFF 100%);
 }
 :root[data-modo='claro'][data-acento='naranja'] {
+  --fondo-app: #FFF8F1;
+  --fondo-exterior: #EBE4DE;
+  --neutro-3: #FFF2E3;
+  --acento: #C2410C;
+  --acento-rgb: 194, 65, 12;
+  --acento-barra: #7C2D12;
   --acento-texto: #C2410C;
   --acento-texto-claro: #9A3412;
   --acento-fondo: #FFEDD5;
-  --acento-fondo-2: #FEDFBE;
-  --acento-fondo-3: #FFF7ED;
-  --acento-borde: #F5C9A0;
+  --acento-fondo-2: #F9DCC1;
+  --acento-fondo-3: #FFF4E6;
+  --acento-borde: #EDB999;
+  --cabecera: linear-gradient(90deg, #7C2D12 0%, #C2410C 55%, #FF9F43 100%);
 }

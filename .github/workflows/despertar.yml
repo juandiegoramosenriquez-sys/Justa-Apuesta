@@ -1,0 +1,17 @@
+# Despertador de respaldo: si el cron de cron-job.org se desactiva, esto evita que el servidor (Render)
+# y la base de datos (Aiven) pasen días sin uso. Cada 2 horas para no pasar los minutos gratis de GitHub.
+name: Despertar servidor
+
+on:
+  schedule:
+    - cron: '17 */2 * * *'
+  workflow_dispatch:
+
+jobs:
+  despertar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Llamar a /api/health
+        run: |
+          curl -s --max-time 200 --retry 2 --retry-delay 10 https://justa-apuesta.onrender.com/api/health || true

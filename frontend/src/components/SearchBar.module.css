@@ -7,9 +7,9 @@
   gap: 10px;
   background: var(--superficie);
   border: 1px solid var(--borde);
-  border-radius: 14px;
-  padding: 0 14px;
-  height: 48px;
+  border-radius: 12px;
+  padding: 0 12px;
+  height: 40px;
 }
 .caja:focus-within {
   border-color: var(--acento);
@@ -21,9 +21,9 @@
   border: 0;
   outline: none;
   color: var(--texto);
-  font-size: 15px;
+  font-size: 14px;
   font-family: inherit;
-  height: 46px;
+  height: 38px;
 }
 .input::-webkit-search-cancel-button {
   filter: invert(0.7);
@@ -57,10 +57,10 @@
 
 @media (min-width: 900px) {
   .caja {
-    height: 54px;
+    height: 46px;
   }
   .input {
-    font-size: 17px;
-    height: 52px;
+    font-size: 15px;
+    height: 44px;
   }
 }

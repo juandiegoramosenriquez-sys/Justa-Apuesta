@@ -257,6 +257,10 @@ mvnw.cmd test
 
 El primero evita que Render se duerma (se duerme a los 15 minutos sin visitas). El segundo actualiza los partidos cada día.
 
+> cron-job.org **desactiva solo** una tarea que falla varias veces seguidas (por ejemplo, si la base de datos estuvo apagada). Si la web vuelve a tardar mucho, entra a cron-job.org y revisa que **Despertar Justa Apuesta** siga activada.
+>
+> De respaldo, GitHub llama a `/api/health` cada 2 horas (`.github/workflows/despertar.yml`). Así el servidor y la base de datos de Aiven no pasan días sin uso. Si aun así la web está dormida, la pantalla de espera sigue intentando sola hasta que entre (hasta ~3 minutos).
+
 ---
 
 ## 9. Variables de entorno

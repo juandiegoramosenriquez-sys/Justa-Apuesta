@@ -38,3 +38,8 @@
 @media (prefers-reduced-motion: reduce) {
   .puntos span { animation: none; opacity: 0.7; }
 }
+.detalle {
+  font-size: 12px;
+  color: var(--texto-apagado);
+  font-variant-numeric: tabular-nums;
+}

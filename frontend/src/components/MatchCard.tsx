@@ -37,7 +37,7 @@ export function MatchCard({ p, ligaFavorita, conLiga = true }: { p: PartidoResum
   }
 
   return (
-    <article className={s.tarjeta}>
+    <article className={`${s.tarjeta} ${c?.blindado && !jugado ? s.destacada : ''}`}>
       <div className={s.cabecera}>
         <span className={s.fecha}>
           {etiquetaFecha(p.fecha, p.estado)}

@@ -11,7 +11,9 @@ function pintar() {
   const raiz = document.documentElement
   raiz.dataset.modo = claro ? 'claro' : 'oscuro'
   raiz.dataset.acento = actual.acento.toLowerCase()
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', claro ? '#F4F6F2' : '#070908')
+  // La barra del navegador del celular toma el color del fondo (cada acento tiene su negro o blanco teñido)
+  const fondo = getComputedStyle(raiz).getPropertyValue('--fondo-app').trim()
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', fondo || (claro ? '#F7FBEF' : '#060905'))
 }
 
 /** Aplica y recuerda la apariencia en este navegador (para pintarla antes de cargar la cuenta). */

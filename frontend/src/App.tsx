@@ -28,10 +28,23 @@ function SinSesion({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
-  const { listo, lento } = useServidorListo()
+  const { listo, estado, segundos } = useServidorListo()
 
   if (!listo) {
-    return lento ? <Despertando texto="Despertando el servidor… puede tardar hasta un minuto." /> : null
+    if (estado === 'probando') return null
+    if (estado === 'sin_base_de_datos') {
+      return <Despertando texto="El servidor ya despertó, pero la base de datos está apagada. Seguimos intentando…" />
+    }
+    return (
+      <Despertando
+        texto={
+          segundos < 20
+            ? 'Despertando el servidor…'
+            : 'El servidor gratis estaba dormido y puede tardar hasta 3 minutos. No cierres la página, entra solo.'
+        }
+        detalle={segundos >= 20 ? `${segundos} s` : undefined}
+      />
+    )
   }
 
   return (

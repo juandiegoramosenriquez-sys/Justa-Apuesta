@@ -1,11 +1,16 @@
 .tarjeta {
   background: var(--superficie);
   border: 1px solid var(--borde);
-  border-radius: 18px;
-  padding: 6px 14px 14px;
+  border-radius: 16px;
+  padding: 4px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+}
+/* El pick blindado se destaca con borde neón y halo */
+.destacada {
+  border-color: var(--borde-neon);
+  box-shadow: var(--halo);
 }
 .cabecera {
   display: flex;
@@ -14,7 +19,7 @@
   gap: 8px;
 }
 .fecha {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--texto-secundario);
   min-width: 0;
   overflow: hidden;
@@ -40,7 +45,7 @@
   color: var(--texto);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
 .equipos {
@@ -58,7 +63,7 @@
 .nombre {
   font-family: var(--fuente-titulo);
   font-weight: 700;
-  font-size: 22px;
+  font-size: 17px;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -67,14 +72,15 @@
 .goles {
   font-family: var(--fuente-titulo);
   font-weight: 800;
-  font-size: 24px;
+  font-size: 20px;
 }
 .chipLocal,
 .chipVisita {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  border-radius: 6px;
-  padding: 3px 7px;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 3px 9px;
   flex-shrink: 0;
 }
 .chipLocal {
@@ -83,17 +89,18 @@
 }
 .chipVisita {
   color: var(--texto-secundario);
-  background: var(--fondo-app);
+  background: transparent;
+  border: 1px solid var(--borde);
 }
 .franja {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: 11px;
+  padding: 9px 12px;
   width: 100%;
-  border: 1px solid;
+  border: 1px solid transparent;
 }
 .franjaTextos {
   display: flex;
@@ -102,7 +109,8 @@
   min-width: 0;
 }
 .franjaTitulo {
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -114,22 +122,22 @@
   gap: 2px;
 }
 .franjaCuota {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--acento-texto-claro);
 }
 .franjaPick {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
 }
 .franjaPct {
   font-family: var(--fuente-titulo);
   font-weight: 800;
-  font-size: 24px;
+  font-size: 20px;
+  line-height: 1;
 }
 .verde {
   background: var(--verde-fondo);
-  border-color: var(--verde);
 }
 .verde .franjaTitulo {
   color: var(--verde-texto);
@@ -139,7 +147,6 @@
 }
 .rojo {
   background: var(--rojo-fondo);
-  border-color: var(--rojo);
 }
 .rojo .franjaTitulo {
   color: var(--rojo-texto);
@@ -205,34 +212,34 @@
 /* PC: todo un poco más grande y fácil de tocar */
 @media (min-width: 900px) {
   .tarjeta {
-    padding: 8px 18px 18px;
-    border-radius: 22px;
+    padding: 6px 18px 16px;
+    border-radius: 18px;
   }
   .fecha {
-    font-size: 14px;
+    font-size: 12px;
   }
   .nombre {
-    font-size: 23px;
+    font-size: 19px;
   }
   .goles {
-    font-size: 26px;
+    font-size: 22px;
   }
   .escudo,
   .escudoVacio {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
   }
   .franja {
-    padding: 12px 16px;
+    padding: 11px 14px;
   }
   .franjaTitulo,
   .franjaCuota {
-    font-size: 13px;
+    font-size: 11px;
   }
   .franjaPick {
-    font-size: 17px;
+    font-size: 15px;
   }
   .franjaPct {
-    font-size: 28px;
+    font-size: 23px;
   }
 }

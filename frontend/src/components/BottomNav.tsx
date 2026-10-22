@@ -22,7 +22,7 @@ export function BottomNav() {
         <NavLink key={a} to={a} end={a === '/'} className={({ isActive }) => `${s.item} ${isActive ? s.activo : ''}`}>
           {({ isActive }) => (
             <>
-              <Icono color={isActive ? 'var(--acento-texto)' : 'var(--texto-apagado)'} />
+              <Icono color={isActive ? 'var(--acento-texto-claro)' : 'var(--texto-apagado)'} />
               {texto}
             </>
           )}
