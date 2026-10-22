@@ -42,6 +42,14 @@ function porEstado(partidos: PartidoResumen[]) {
   ].filter((g) => g.lista.length > 0)
 }
 
+/** Los partidos de los 2 días siguientes que tengan partidos (para no mostrar semanas enteras). */
+function proximosPrimeros(partidos: PartidoResumen[]) {
+  const dia = (p: PartidoResumen) => new Date(p.fecha).toLocaleDateString('es-PE')
+  const ordenados = [...partidos].sort((a, b) => a.fecha.localeCompare(b.fecha))
+  const dias = [...new Set(ordenados.map(dia))].slice(0, 2)
+  return ordenados.filter((p) => dias.includes(dia(p)))
+}
+
 export function MatchesPage() {
   const { usuario } = useSesion()
   const navigate = useNavigate()
@@ -57,11 +65,21 @@ export function MatchesPage() {
     queryFn: () => (buscando ? partidosApi.buscar(q) : partidosApi.lista(pestana)),
   })
 
+  // Si hoy ya no quedan partidos, en vez de dejar la pestaña vacía se muestran los siguientes
+  const hoyVacio = !buscando && pestana === 'HOY' && lista.data !== undefined && lista.data.partidos.length === 0
+  const siguientes = useQuery({
+    queryKey: ['partidos', 'PROXIMO'],
+    queryFn: () => partidosApi.lista('PROXIMO'),
+    enabled: hoyVacio,
+  })
+
   const pull = usePullToRefresh(() => lista.refetch())
 
   if (!usuario) return null
   const favoritas = new Set(usuario.ligasFavoritas)
-  const partidos = lista.data?.partidos ?? []
+  const delDia = lista.data?.partidos ?? []
+  const usandoSiguientes = hoyVacio && (siguientes.data?.partidos.length ?? 0) > 0
+  const partidos = usandoSiguientes ? proximosPrimeros(siguientes.data!.partidos) : delDia
   const cambiar = (cambios: Record<string, string>) =>
     setParams((p) => {
       Object.entries(cambios).forEach(([k, v]) => (v ? p.set(k, v) : p.delete(k)))
@@ -79,7 +97,7 @@ export function MatchesPage() {
 
       <main className={ui.contenido}>
         <div className={ui.filaTitulo}>
-          <h1 className={ui.tituloSeccion}>{buscando ? 'Resultados' : `Partidos · ${NOMBRE[pestana]}`}</h1>
+          <h1 className={ui.tituloSeccion}>{buscando ? 'Resultados' : usandoSiguientes ? 'Partidos · Siguientes' : `Partidos · ${NOMBRE[pestana]}`}</h1>
           <span className={ui.sub}>
             {buscando ? '' : lista.data ? `${partidos.length} ${partidos.length === 1 ? 'partido' : 'partidos'}` : ''}
           </span>
@@ -88,11 +106,14 @@ export function MatchesPage() {
         {lista.data?.aviso && <Aviso texto={lista.data.aviso} />}
         {texto.trim().length > 0 && texto.trim().length < 3 && <span className={ui.sub}>Escribe al menos 3 letras.</span>}
 
-        {lista.isPending && [0, 1, 2, 3].map((i) => <MatchCardSkeleton key={i} />)}
+        {(lista.isPending || (hoyVacio && siguientes.isPending)) && [0, 1, 2, 3].map((i) => <MatchCardSkeleton key={i} />)}
         {lista.isError && (
           <ErrorCaja mensaje={`No pudimos cargar los partidos. ${lista.error.message}`} onReintentar={() => lista.refetch()} />
         )}
-        {lista.data && partidos.length === 0 && (
+        {usandoSiguientes && (
+          <Aviso texto="Ya no quedan partidos por jugar hoy. Estos son los siguientes, así ya puedes ir viendo los picks." />
+        )}
+        {lista.data && partidos.length === 0 && !(hoyVacio && siguientes.isPending) && (
           <div className={ui.vacio}>
             {buscando ? 'Sin partidos para ese equipo.' : `Sin partidos ${NOMBRE[pestana].toLowerCase()}. Busca un equipo.`}
           </div>
