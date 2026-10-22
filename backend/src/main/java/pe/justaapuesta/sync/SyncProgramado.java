@@ -35,6 +35,8 @@ public class SyncProgramado {
 			sync.diaria();
 		}
 		sync.historialExtra();
+		sync.espn();
+		sync.estadisticasCsv();
 	}
 
 	/** Al arrancar: si hoy todavía no se bajaron los partidos, se bajan ya (en segundo plano). */
@@ -45,6 +47,8 @@ public class SyncProgramado {
 				sync.diaria();
 				sync.historialExtra();
 			}
+			sync.espn();
+			sync.estadisticasCsv();
 		});
 	}
 }

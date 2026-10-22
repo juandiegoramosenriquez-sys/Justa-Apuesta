@@ -366,8 +366,10 @@ public final class Motor {
 	 * Mercados que nunca son blindados: medido en 867 partidos jugados, aciertan 4-6 puntos menos de lo que dice
 	 * su % (menos de 3.5 goles, más de 2.5, ambos marcan, cada equipo más de 1.5). Se muestran igual con su %.
 	 */
+	// Medidos con partidos ya jugados: estos fallan más de lo que dice su porcentaje (corners de un solo equipo: 33-43%)
 	static final java.util.Set<String> NO_BLINDABLES = java.util.Set.of("goles.u35", "goles.o25", "goles.btts",
-			"equipos.local15", "equipos.visita15");
+			"equipos.local15", "equipos.visita15", "corners.local35", "corners.visita35", "remates.o65", "remates.o75",
+			"remates.o95");
 	static final double EQUIPO_MIN = 0.8;
 	static final double H2H_MIN = 0.67;
 	static final double LIGA_MIN = 0.7;

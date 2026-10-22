@@ -50,6 +50,8 @@ public class PartidosService {
 	private static final int DIAS_JUGADOS = 3;
 	/** Próximos = mañana y pasado mañana. */
 	private static final int DIAS_PROXIMOS = 2;
+	/** En Hoy: si quedan menos partidos importantes por jugar, se suman los demás partidos del día. */
+	static final int MINIMO_HOY = 10;
 
 	public enum Pestana { JUGADO, HOY, PROXIMO }
 
@@ -136,7 +138,23 @@ public class PartidosService {
 
 	/** Partidos de una pestaña, solo de las ligas configuradas (también para Picks). */
 	public List<Partido> partidosDe(Pestana pestana) {
-		// Solo los partidos de equipos famosos (se detectan solos). El resto aparece al buscarlo.
+		List<Partido> esenciales = esenciales(pestana);
+		if (pestana != Pestana.HOY || esenciales.size() >= MINIMO_HOY) {
+			return esenciales;
+		}
+		// Hoy: cuando ya se jugaron casi todos los importantes, se suman los demás partidos del día (otras ligas)
+		Set<Long> ya = esenciales.stream().map(Partido::getId).collect(java.util.stream.Collectors.toSet());
+		List<Partido> todos = new java.util.ArrayList<>(esenciales);
+		partidosDeTodas(pestana).stream()
+				.filter(p -> !ya.contains(p.getId()))
+				.filter(p -> !NombresEquipos.esJuvenilOFemenino(p.getLocal().getNombre())
+						&& !NombresEquipos.esJuvenilOFemenino(p.getVisita().getNombre()))
+				.forEach(todos::add);
+		return todos;
+	}
+
+	/** Los partidos que siempre se muestran: equipos famosos y ligas configuradas. El resto aparece al buscarlo. */
+	private List<Partido> esenciales(Pestana pestana) {
 		Set<Long> equiposFamosos = famosos.equipos();
 		if (!equiposFamosos.isEmpty()) {
 			// ...y todos los de las ligas configuradas (Liga 1 Perú, Argentina, MLS...), vengan de la fuente que vengan

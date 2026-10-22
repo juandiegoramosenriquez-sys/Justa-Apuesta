@@ -13,6 +13,10 @@ public interface EstadisticaPartidoRepository extends JpaRepository<EstadisticaP
 	@Query("select e from EstadisticaPartido e where e.clave.partidoId in :ids")
 	List<EstadisticaPartido> dePartidos(@Param("ids") Collection<Long> partidoIds);
 
+	/** Partidos que ya tienen corners guardados (de cualquier fuente). */
+	@Query("select distinct e.clave.partidoId from EstadisticaPartido e where e.corners is not null")
+	List<Long> partidosConCorners();
+
 	@Modifying
 	@Query("delete from EstadisticaPartido e where e.clave.partidoId = :id")
 	void borrarDePartido(@Param("id") Long partidoId);

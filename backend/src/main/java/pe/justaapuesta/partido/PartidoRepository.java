@@ -29,6 +29,9 @@ public interface PartidoRepository extends JpaRepository<Partido, Long> {
 	/** Si ya hay un partido de esos equipos cerca de esa fecha (de cualquier fuente). */
 	boolean existsByLocal_IdAndVisita_IdAndFechaHoraUtcBetween(Long localId, Long visitaId, Instant desde, Instant hasta);
 
+	List<Partido> findByLocal_IdAndVisita_IdAndFechaHoraUtcBetween(Long localId, Long visitaId, Instant desde,
+			Instant hasta);
+
 	/** Pares (local, visita) de los partidos de esas ligas desde una fecha. */
 	@Query("select p.local.id, p.visita.id from Partido p where p.liga.proveedorId in :ligas and p.fechaHoraUtc >= :desde")
 	List<Object[]> equiposDeLigas(@Param("ligas") Collection<Long> ligasProveedor, @Param("desde") Instant desde);

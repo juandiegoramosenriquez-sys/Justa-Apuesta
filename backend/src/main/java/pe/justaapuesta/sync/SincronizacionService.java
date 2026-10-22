@@ -20,6 +20,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import lombok.RequiredArgsConstructor;
 import pe.justaapuesta.analisis.AnalisisCacheRepository;
 import pe.justaapuesta.config.JustaProperties;
+import pe.justaapuesta.historial.EspnService;
+import pe.justaapuesta.historial.EstadisticasCsvService;
 import pe.justaapuesta.historial.HistorialService;
 import pe.justaapuesta.historial.TheSportsDbService;
 import pe.justaapuesta.partido.CatalogoService;
@@ -47,10 +49,15 @@ public class SincronizacionService {
 	public static final String HOY = "hoy";
 	public static final String HISTORIAL = "historial";
 	public static final String HISTORIAL_EXTRA = "thesportsdb";
+	public static final String ESTADISTICAS = "estadisticas-csv";
+	public static final String ESPN = "espn";
+	public static final String ESPN_HISTORIAL = "espn-historial";
 
 	private final FootballDataProvider proveedor;
 	private final HistorialService historial;
 	private final TheSportsDbService historialExtra;
+	private final EstadisticasCsvService estadisticasCsv;
+	private final EspnService espn;
 	private final CatalogoService catalogo;
 	private final PartidoRepository partidoRepository;
 	private final DiaSincronizadoRepository diaRepository;
@@ -61,6 +68,8 @@ public class SincronizacionService {
 	private final JustaProperties props;
 	private final AtomicBoolean enCurso = new AtomicBoolean(false);
 	private final AtomicBoolean extraEnCurso = new AtomicBoolean(false);
+	private final AtomicBoolean csvEnCurso = new AtomicBoolean(false);
+	private final AtomicBoolean espnEnCurso = new AtomicBoolean(false);
 
 	/** @return false si ya había una sincronización corriendo */
 	public boolean diaria() {
@@ -238,6 +247,60 @@ public class SincronizacionService {
 			registrar(HISTORIAL_EXTRA, false, String.valueOf(e.getMessage()));
 		} finally {
 			extraEnCurso.set(false);
+		}
+	}
+
+	/**
+	 * Fuente 4 (football-data.co.uk), una vez al día: corners, tarjetas y remates de los partidos jugados de las
+	 * ligas principales de Europa. Con eso salen los mercados de corners, tarjetas y remates.
+	 */
+	public void estadisticasCsv() {
+		if (hechaHoy(ESTADISTICAS) || !csvEnCurso.compareAndSet(false, true)) {
+			return;
+		}
+		try {
+			String r = estadisticasCsv.importar();
+			registrar(ESTADISTICAS, !r.startsWith("0 filas"), r);
+			if (!r.contains(" 0 partidos con")) {
+				recalcularAnalisis();
+			}
+		} catch (RuntimeException e) {
+			log.warn("Estadísticas football-data.co.uk fallaron: {}", e.getMessage());
+			registrar(ESTADISTICAS, false, String.valueOf(e.getMessage()));
+		} finally {
+			csvEnCurso.set(false);
+		}
+	}
+
+	/**
+	 * Fuente 5 (ESPN), cada 3 horas: los partidos de hoy y de los próximos días de muchas ligas y copas, con
+	 * marcadores y estadísticas. Una vez al día también los meses anteriores (historial para el análisis).
+	 */
+	public void espn() {
+		boolean conHistorial = !hechaHoy(ESPN_HISTORIAL);
+		// Al despertar el servidor varias veces seguidas no se repite (se actualizó hace menos de una hora)
+		boolean reciente = ultima(ESPN).filter(s -> s.getEjecutadoEn().isAfter(Instant.now().minus(Duration.ofHours(1))))
+				.isPresent();
+		if ((!conHistorial && reciente) || !espnEnCurso.compareAndSet(false, true)) {
+			return;
+		}
+		try {
+			String r = espn.sincronizar(conHistorial);
+			log.info("ESPN{}: {}", conHistorial ? " (con historial)" : "", r);
+			boolean ok = !r.startsWith("0 partidos nuevos, 0 ") || !r.contains("con error");
+			registrar(ESPN, ok, r);
+			if (conHistorial) {
+				registrar(ESPN_HISTORIAL, ok, r);
+			}
+			if (conHistorial) {
+				tx.execute(s -> historial.vincularPorNombre());
+			}
+			recalcularAnalisis();
+		} catch (RuntimeException e) {
+			log.warn("ESPN falló: {}", e.getMessage());
+			registrar(ESPN, false, String.valueOf(e.getMessage()));
+		} finally {
+			espnEnCurso.set(false);
 		}
 	}
 
