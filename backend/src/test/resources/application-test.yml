@@ -21,3 +21,6 @@ justa:
     clave: ""
   precalculo:
     activo: false
+  # Sin tareas programadas: al arrancar no se baja nada de ESPN ni de football-data.co.uk
+  sync:
+    programado: false

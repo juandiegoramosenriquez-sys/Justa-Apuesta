@@ -221,6 +221,17 @@ public class SincronizacionService {
 		return ultima(DIARIA).map(s -> s.getEjecutadoEn().isAfter(limite)).orElse(false);
 	}
 
+	/**
+	 * Las descargas grandes van de madrugada (0 a 6 h en Lima), una vez al día. Si hace 3 días que no se hacen
+	 * (servidor recién publicado o apagado), van apenas se pueda.
+	 */
+	private boolean tocaDescargaGrande(String clave) {
+		boolean madrugada = java.time.LocalTime.now(props.zona()).getHour() < 6;
+		boolean atrasada = ultima(clave).filter(SyncEstado::isOk)
+				.map(s -> s.getEjecutadoEn().isBefore(Instant.now().minus(Duration.ofDays(3)))).orElse(true);
+		return atrasada || (madrugada && !hechaHoy(clave));
+	}
+
 	private boolean hechaHoy(String clave) {
 		LocalDate hoy = LocalDate.now(props.zona());
 		return ultima(clave).filter(SyncEstado::isOk)
@@ -255,7 +266,7 @@ public class SincronizacionService {
 	 * ligas principales de Europa. Con eso salen los mercados de corners, tarjetas y remates.
 	 */
 	public void estadisticasCsv() {
-		if (hechaHoy(ESTADISTICAS) || !csvEnCurso.compareAndSet(false, true)) {
+		if (!tocaDescargaGrande(ESTADISTICAS) || !csvEnCurso.compareAndSet(false, true)) {
 			return;
 		}
 		try {
@@ -274,10 +285,11 @@ public class SincronizacionService {
 
 	/**
 	 * Fuente 5 (ESPN), cada 3 horas: los partidos de hoy y de los próximos días de muchas ligas y copas, con
-	 * marcadores y estadísticas. Una vez al día también los meses anteriores (historial para el análisis).
+	 * marcadores y estadísticas. Una vez al día, de madrugada, también los meses anteriores (historial para el
+	 * análisis): así la descarga grande no pone lenta la web cuando la gente entra de día.
 	 */
 	public void espn() {
-		boolean conHistorial = !hechaHoy(ESPN_HISTORIAL);
+		boolean conHistorial = tocaDescargaGrande(ESPN_HISTORIAL);
 		// Al despertar el servidor varias veces seguidas no se repite (se actualizó hace menos de una hora)
 		boolean reciente = ultima(ESPN).filter(s -> s.getEjecutadoEn().isAfter(Instant.now().minus(Duration.ofHours(1))))
 				.isPresent();
