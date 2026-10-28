@@ -7,7 +7,7 @@ import { ErrorCaja } from '../components/Estados'
 import { Header } from '../components/Header'
 import { MatchCardSkeleton } from '../components/MatchCard'
 import { Segments } from '../components/Segments'
-import { IconoCheck, IconoEscudo, IconoMas } from '../components/iconos'
+import { IconoCheck, IconoEscudo, IconoImagen, IconoMas } from '../components/iconos'
 import { useBoleto } from '../hooks/useBoleto'
 import { etiquetaFecha } from '../lib/formato'
 import ui from '../styles/ui.module.css'
@@ -37,6 +37,13 @@ export function PicksPage() {
       <Header usuario={usuario} onModo={() => navigate('/perfil')} />
       <Segments opciones={DIAS} activa={dia} onCambio={setDia} />
       <main className={ui.contenido} style={{ gap: 14 }}>
+        <button type="button" className={s.analizar} onClick={() => navigate('/analizar')}>
+          <IconoImagen size={20} />
+          <span className={s.textos}>
+            <b>Analizar mi apuesta</b>
+            <span className={ui.sub}>Sube la foto de tu boleto y te decimos la probabilidad de que salga</span>
+          </span>
+        </button>
         {q.isPending && [0, 1].map((i) => <MatchCardSkeleton key={i} />)}
         {q.isError && <ErrorCaja mensaje={q.error.message} onReintentar={() => q.refetch()} />}
 

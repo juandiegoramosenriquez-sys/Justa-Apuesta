@@ -136,7 +136,8 @@ public class EspnService {
 		LocalDate hoy = LocalDate.now(props.zona());
 		Set<YearMonth> meses = new LinkedHashSet<>();
 		meses.add(YearMonth.from(hoy));
-		meses.add(YearMonth.from(hoy.plusDays(3)));
+		// El mes siguiente también: a fin de mes, los partidos de la semana que viene ya son del otro mes
+		meses.add(YearMonth.from(hoy).plusMonths(1));
 		if (conHistorial) {
 			for (int i = 1; i <= MESES_HISTORIAL; i++) {
 				meses.add(YearMonth.from(hoy).minusMonths(i));

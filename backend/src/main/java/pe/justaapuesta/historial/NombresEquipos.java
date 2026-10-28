@@ -163,6 +163,11 @@ public final class NombresEquipos {
 		return mejor;
 	}
 
+	/** Palabras que identifican al equipo ("Manchester United FC" -> manchester). Vacío si solo tiene palabras débiles. */
+	public static Set<String> palabrasDistintivas(String nombre) {
+		return palabras(nombre).stream().filter(p -> !DEBILES.contains(p) && p.length() >= 3).collect(Collectors.toSet());
+	}
+
 	public static boolean esJuvenilOFemenino(String nombre) {
 		return Arrays.stream(limpiar(nombre).split(" ")).anyMatch(JUVENILES::contains);
 	}

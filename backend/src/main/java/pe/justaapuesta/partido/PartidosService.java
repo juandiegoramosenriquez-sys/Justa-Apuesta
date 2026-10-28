@@ -5,13 +5,17 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -50,6 +54,8 @@ public class PartidosService {
 	private static final int DIAS_JUGADOS = 3;
 	/** Próximos = mañana y pasado mañana. */
 	private static final int DIAS_PROXIMOS = 2;
+	/** Al buscar una liga: sus partidos de la próxima semana. */
+	private static final int DIAS_LIGA_BUSCADA = 7;
 	/** En Hoy: si quedan menos partidos importantes por jugar, se suman los demás partidos del día. */
 	static final int MINIMO_HOY = 10;
 
@@ -211,6 +217,14 @@ public class PartidosService {
 		if (q.length() < 3) {
 			throw new SolicitudInvalidaException("Escribe al menos 3 letras.");
 		}
+		// "liverpool vs brentford": los partidos entre los dos
+		String[] lados = q.split("\\s+(?:vs|v|x|contra)\\s+|\\s+-\\s+", 2);
+		if (lados.length == 2 && lados[0].trim().length() >= 3 && lados[1].trim().length() >= 3) {
+			ListaPartidosDto entre = buscarPartido(lados[0].trim(), lados[1].trim(), usuarioId);
+			if (!entre.partidos().isEmpty()) {
+				return entre;
+			}
+		}
 		String aviso = null;
 		List<Equipo> equipos = equiposRelevantes(q);
 		// Si no hay un equipo que se llame exactamente así y con historial, se busca en TheSportsDB (una vez cada
@@ -228,52 +242,134 @@ public class PartidosService {
 		Instant ahora = Instant.now();
 		Map<Long, Partido> porJugar = new LinkedHashMap<>();
 		Map<Long, Partido> jugados = new LinkedHashMap<>();
-		for (Equipo e : equipos) {
+		// Un club puede estar guardado varias veces (una por fuente): se miran todas sus versiones
+		for (Equipo e : conSusOtrasVersiones(equipos)) {
 			partidoRepository.proximosDeEquipo(e.getId(), ahora.minus(Duration.ofHours(3)), PageRequest.of(0, POR_EQUIPO))
 					.forEach(p -> porJugar.putIfAbsent(p.getId(), p));
 			partidoRepository.jugadosDeEquipo(e.getId(), ahora, PageRequest.of(0, POR_EQUIPO))
 					.forEach(p -> jugados.putIfAbsent(p.getId(), p));
 		}
-		// Búsqueda por liga ("premier", "liga 1"): sus partidos de estos días
+		// Búsqueda por liga ("premier", "liga 1"): sus partidos de estos días y de la próxima semana
 		List<Liga> ligas = ligaRepository.buscar(q);
 		if (!ligas.isEmpty()) {
 			LocalDate hoy = LocalDate.now(props.zona());
 			partidoRepository.deLigas(ligas.stream().map(Liga::getId).toList(),
 					hoy.minusDays(DIAS_JUGADOS).atStartOfDay(props.zona()).toInstant(),
-					hoy.plusDays(DIAS_PROXIMOS + 1L).atStartOfDay(props.zona()).toInstant())
+					hoy.plusDays(DIAS_LIGA_BUSCADA + 1L).atStartOfDay(props.zona()).toInstant())
 					.forEach(p -> (p.jugado() ? jugados : porJugar).putIfAbsent(p.getId(), p));
 		}
-		List<Partido> lista = new ArrayList<>(porJugar.values().stream()
+		List<Partido> lista = new ArrayList<>(sinRepetidos(porJugar.values()).stream()
 				.sorted(Comparator.comparing(Partido::getFechaHoraUtc)).toList());
-		jugados.values().stream().filter(p -> !porJugar.containsKey(p.getId()))
+		sinRepetidos(jugados.values()).stream().filter(p -> !porJugar.containsKey(p.getId()))
 				.sorted(Comparator.comparing(Partido::getFechaHoraUtc).reversed()).forEach(lista::add);
 		lista = lista.subList(0, Math.min(MAX_RESULTADOS, lista.size()));
 		return new ListaPartidosDto(analisis.resumenes(lista, usuarioId), actualizadoEn(),
 				aviso != null ? aviso : avisoSiDesactualizado());
 	}
 
+	/** Partidos entre dos equipos buscados juntos: los próximos y los últimos enfrentamientos. */
+	private ListaPartidosDto buscarPartido(String a, String b, Long usuarioId) {
+		Set<Long> idsA = conSusOtrasVersiones(equiposRelevantes(a)).stream().map(Equipo::getId)
+				.collect(Collectors.toSet());
+		Set<Long> idsB = conSusOtrasVersiones(equiposRelevantes(b)).stream().map(Equipo::getId)
+				.collect(Collectors.toSet());
+		if (idsA.isEmpty() || idsB.isEmpty()) {
+			return new ListaPartidosDto(List.of(), actualizadoEn(), null);
+		}
+		Instant ahora = Instant.now();
+		List<Partido> todos = sinRepetidos(partidoRepository.deEquipos(idsA).stream()
+				.filter(p -> (idsA.contains(p.getLocal().getId()) && idsB.contains(p.getVisita().getId()))
+						|| (idsB.contains(p.getLocal().getId()) && idsA.contains(p.getVisita().getId())))
+				.filter(p -> p.jugado() || (sinTerminar(p) && p.getFechaHoraUtc().isAfter(ahora.minus(Duration.ofHours(3)))))
+				.toList());
+		List<Partido> lista = new ArrayList<>(todos.stream().filter(p -> !p.jugado())
+				.sorted(Comparator.comparing(Partido::getFechaHoraUtc)).toList());
+		todos.stream().filter(Partido::jugado).sorted(Comparator.comparing(Partido::getFechaHoraUtc).reversed())
+				.limit(POR_EQUIPO).forEach(lista::add);
+		return new ListaPartidosDto(analisis.resumenes(lista, usuarioId), actualizadoEn(), null);
+	}
+
+	/** El mismo club guardado por otras fuentes: mismo nombre (sin dudas) y mismo país. */
+	private List<Equipo> conSusOtrasVersiones(List<Equipo> equipos) {
+		Map<Long, Equipo> out = new LinkedHashMap<>();
+		for (Equipo e : equipos) {
+			out.putIfAbsent(e.getId(), e);
+			String palabra = Arrays.stream(NombresEquipos.clave(e.getNombre()).split(" "))
+					.max(Comparator.comparingInt(String::length)).orElse("");
+			if (palabra.length() < 3) {
+				continue;
+			}
+			equipoRepository.buscar(palabra, PageRequest.of(0, 40)).stream()
+					.filter(x -> !NombresEquipos.esJuvenilOFemenino(x.getNombre()))
+					.filter(x -> NombresEquipos.similitudConVariantes(e.getNombre(), x.getNombreNormalizado()) >= NombresEquipos.IGUAL
+							|| NombresEquipos.similitudConVariantes(x.getNombre(), e.getNombreNormalizado()) >= NombresEquipos.IGUAL)
+					.filter(x -> NombresEquipos.mismoPais(x.pais(), e.pais()))
+					.forEach(x -> out.putIfAbsent(x.getId(), x));
+		}
+		return new ArrayList<>(out.values());
+	}
+
+	/** El mismo partido traído por dos fuentes (±36 h y mismos equipos por nombre) se muestra una vez. */
+	public static List<Partido> sinRepetidos(Collection<Partido> partidos) {
+		List<Partido> out = new ArrayList<>();
+		// Se quedan primero los que tienen resultado y los más actualizados
+		List<Partido> orden = partidos.stream()
+				.sorted(Comparator.comparing((Partido p) -> p.jugado() ? 0 : 1)
+						.thenComparing(p -> p.getActualizadoEn() == null ? Instant.EPOCH : p.getActualizadoEn(),
+								Comparator.reverseOrder()))
+				.toList();
+		for (Partido p : orden) {
+			boolean repetido = out.stream().anyMatch(x -> Duration.between(x.getFechaHoraUtc(), p.getFechaHoraUtc()).abs()
+					.compareTo(Duration.ofHours(36)) <= 0
+					&& NombresEquipos.similitud(x.getLocal().getNombre(), p.getLocal().getNombre()) >= 3
+					&& NombresEquipos.similitud(x.getVisita().getNombre(), p.getVisita().getNombre()) >= 3);
+			if (!repetido) {
+				out.add(p);
+			}
+		}
+		return out;
+	}
+
 	/**
 	 * Los equipos que mejor responden a la búsqueda: si alguno se llama exactamente así o empieza así, solo esos
 	 * ("milan" -> AC Milan, no el Inter de Milano); si no, los más parecidos. Sin juveniles ni femeninos, salvo que
-	 * se busquen. Máximo 4.
+	 * se busquen. Si el texto completo no aparece en ningún nombre ("man united"), se busca palabra por palabra.
+	 * Máximo 4; con el mismo parecido, primero los que tienen partidos por jugar.
 	 */
 	private List<Equipo> equiposRelevantes(String q) {
 		boolean pideJuveniles = NombresEquipos.esJuvenilOFemenino(q);
-		List<Equipo> candidatos = equipoRepository.buscar(q, PageRequest.of(0, 40)).stream()
+		List<Equipo> encontrados = equipoRepository.buscar(q, PageRequest.of(0, 40));
+		if (encontrados.isEmpty()) {
+			Map<Long, Equipo> porPalabra = new LinkedHashMap<>();
+			Arrays.stream(q.split(" ")).filter(w -> w.length() >= 4)
+					.forEach(w -> equipoRepository.buscar(w, PageRequest.of(0, 40)).forEach(e -> porPalabra.putIfAbsent(e.getId(), e)));
+			encontrados = new ArrayList<>(porPalabra.values());
+		}
+		List<Equipo> candidatos = encontrados.stream()
 				.filter(e -> pideJuveniles || !NombresEquipos.esJuvenilOFemenino(e.getNombre()))
 				.toList();
 		Map<Long, Integer> puntaje = new LinkedHashMap<>();
-		candidatos.forEach(e -> puntaje.put(e.getId(), NombresEquipos.relevancia(q, e.getNombreNormalizado())));
+		candidatos.forEach(e -> puntaje.put(e.getId(), Math.max(NombresEquipos.relevancia(q, e.getNombreNormalizado()),
+				Math.min(3, NombresEquipos.similitudConVariantes(q, e.getNombreNormalizado())))));
 		int mejor = puntaje.values().stream().max(Integer::compare).orElse(0);
-		List<Equipo> elegidos = candidatos.stream().filter(e -> mejor < 3 || puntaje.get(e.getId()) >= 3).toList();
+		List<Equipo> elegidos = candidatos.stream()
+				.filter(e -> puntaje.get(e.getId()) > 0 && (mejor < 3 || puntaje.get(e.getId()) >= 3))
+				.toList();
 		Set<Long> conocidos = elegidos.size() > 1 ? famosos.equipos() : Set.of();
-		// Con el mismo parecido: primero los famosos y luego los que tienen más partidos guardados
 		Map<Long, Long> partidos = new LinkedHashMap<>();
+		Set<Long> conProximos = new HashSet<>();
 		if (elegidos.size() > 1) {
-			elegidos.forEach(e -> partidos.put(e.getId(), partidoRepository.contarDeEquipo(e.getId())));
+			Instant ahora = Instant.now();
+			elegidos.forEach(e -> {
+				partidos.put(e.getId(), partidoRepository.contarDeEquipo(e.getId()));
+				if (!partidoRepository.proximosDeEquipo(e.getId(), ahora, PageRequest.of(0, 1)).isEmpty()) {
+					conProximos.add(e.getId());
+				}
+			});
 		}
 		return elegidos.stream()
 				.sorted(Comparator.comparingInt((Equipo e) -> -puntaje.get(e.getId()))
+						.thenComparingInt(e -> conProximos.contains(e.getId()) ? 0 : 1)
 						.thenComparingInt(e -> conocidos.contains(e.getId()) ? 0 : 1)
 						.thenComparingLong(e -> -partidos.getOrDefault(e.getId(), 0L))
 						.thenComparingInt(e -> e.getNombre().length()))

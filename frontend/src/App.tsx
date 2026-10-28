@@ -4,6 +4,7 @@ import { useSesion } from './auth/sesion'
 import { AppLayout } from './components/AppLayout'
 import { Despertando } from './components/Despertando'
 import { useServidorListo } from './hooks/useServidorListo'
+import { AnalizarApuestaPage } from './pages/AnalizarApuestaPage'
 import { BoletoPublicoPage } from './pages/BoletoPublicoPage'
 import { FavoritesPage } from './pages/FavoritesPage'
 import { LoginPage } from './pages/LoginPage'
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/" element={<MatchesPage />} />
         <Route path="/partido/:id" element={<MatchDetailPage />} />
         <Route path="/picks" element={<PicksPage />} />
+        <Route path="/analizar" element={<AnalizarApuestaPage />} />
         <Route path="/favoritos" element={<FavoritesPage />} />
         <Route path="/perfil" element={<ProfilePage />} />
       </Route>

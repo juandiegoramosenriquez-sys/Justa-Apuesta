@@ -51,6 +51,40 @@ public final class Motor {
 		return redondear((1 - s) * 100);
 	}
 
+	/**
+	 * Probabilidad (en %) de una línea cualquiera, aunque no esté entre los mercados de la app (para "Analizar mi
+	 * apuesta": "más de 0.5 goles", "menos de 4.5 corners"...). Solo con el modelo, sin las pruebas.
+	 *
+	 * @param tipo  goles, corners, tarjetas, remates (a puerta) o tiros (remates totales)
+	 * @param local true = del local, false = del visitante, null = del partido
+	 * @return null si faltan datos de ese tipo
+	 */
+	public static Integer linea(Entradas e, String tipo, double linea, boolean mas, Boolean local) {
+		if ("goles".equals(tipo)) {
+			double[][] mx = marcadores(adj(e));
+			int s = suma(mx, (i, j) -> {
+				int n = local == null ? i + j : local ? i : j;
+				return mas ? n > linea : n < linea;
+			});
+			return s;
+		}
+		Double hs = e.hs();
+		Double l = switch (tipo) {
+			case "corners" -> e.cor() == null || (local != null && hs == null) ? null
+					: local == null ? e.cor() : e.cor() * (local ? hs : 1 - hs);
+			case "tarjetas" -> e.cards() == null ? null : local == null ? e.cards() : e.cards() * (local ? 0.45 : 0.55);
+			case "remates" -> e.sot() == null || (local != null && hs == null) ? null
+					: local == null ? e.sot() : e.sot() * (local ? hs : 1 - hs);
+			case "tiros" -> local == null ? e.rem() : local ? e.remLocal() : e.remVisita();
+			default -> null;
+		};
+		if (l == null) {
+			return null;
+		}
+		int o = over(l, linea);
+		return mas ? o : 100 - o;
+	}
+
 	/** (G×3 + E×1) / 15 */
 	public static double formScore(String racha) {
 		double t = 0;

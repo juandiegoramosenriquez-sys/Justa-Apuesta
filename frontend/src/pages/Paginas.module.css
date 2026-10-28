@@ -386,3 +386,17 @@
   font-size: 15px;
   font-weight: 700;
 }
+
+/* Acceso a "Analizar mi apuesta" */
+.analizar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--borde-neon);
+  background: var(--acento-fondo);
+  color: var(--acento-texto-claro);
+  text-align: left;
+  font-size: 14px;
+}
