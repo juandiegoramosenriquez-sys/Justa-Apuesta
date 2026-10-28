@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router'
 import { partidosApi } from '../api/partidos'
@@ -8,6 +9,7 @@ import { Header } from '../components/Header'
 import { MatchCard, MatchCardSkeleton } from '../components/MatchCard'
 import { SearchBar } from '../components/SearchBar'
 import { Segments } from '../components/Segments'
+import { IconoFlecha } from '../components/iconos'
 import { useDebounce } from '../hooks/useDebounce'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { haceCuanto, paisEs, prioridadLiga } from '../lib/formato'
@@ -32,14 +34,42 @@ function porLiga(partidos: PartidoResumen[], favoritas: Set<string>) {
   )
 }
 
-/** Búsqueda: primero los partidos por jugar y luego los jugados, cada grupo con su título. */
+/** Búsqueda: los partidos por jugar y los ya jugados, cada grupo desplegable. */
 function porEstado(partidos: PartidoResumen[]) {
   const jugados = partidos.filter((p) => p.estado === 'JUGADO')
   const porJugar = partidos.filter((p) => p.estado !== 'JUGADO')
+  const conDato = jugados.filter((p) => p.consejo?.acerto != null)
+  const acertados = conDato.filter((p) => p.consejo?.acerto).length
   return [
-    { titulo: 'Próximos', lista: porJugar },
-    { titulo: 'Jugados', lista: jugados },
+    { clave: 'proximos', titulo: 'Próximos partidos', detalle: '', lista: porJugar },
+    {
+      clave: 'pasados',
+      titulo: 'Partidos pasados',
+      detalle: conDato.length > 0 ? `Acertó ${acertados} de ${conDato.length}` : '',
+      lista: jugados,
+    },
   ].filter((g) => g.lista.length > 0)
+}
+
+/** Un grupo de la búsqueda con flecha para abrirlo o cerrarlo. */
+function GrupoDesplegable({ titulo, detalle, cantidad, abiertoAlInicio, children }: {
+  titulo: string
+  detalle: string
+  cantidad: number
+  abiertoAlInicio: boolean
+  children: React.ReactNode
+}) {
+  const [abierto, setAbierto] = useState(abiertoAlInicio)
+  return (
+    <section className={ui.grupoLiga} aria-label={titulo}>
+      <button type="button" className={ui.desplegable} aria-expanded={abierto} onClick={() => setAbierto(!abierto)}>
+        <span className={ui.desplegableTitulo}>{titulo} <span className={ui.paisLiga}>({cantidad})</span></span>
+        {detalle && <span className={ui.desplegableDetalle}>{detalle}</span>}
+        <IconoFlecha size={18} arriba={abierto} />
+      </button>
+      {abierto && children}
+    </section>
+  )
 }
 
 export function MatchesPage() {
@@ -55,6 +85,8 @@ export function MatchesPage() {
   const lista = useQuery({
     queryKey: buscando ? ['partidos', 'buscar', q] : ['partidos', pestana],
     queryFn: () => (buscando ? partidosApi.buscar(q) : partidosApi.lista(pestana)),
+    // Si el servidor sigue buscando ese equipo en otra fuente, se vuelve a pedir solo
+    refetchInterval: (query) => (query.state.data?.buscandoMas ? 5000 : false),
   })
 
   const pull = usePullToRefresh(() => lista.refetch())
@@ -86,6 +118,7 @@ export function MatchesPage() {
         </div>
 
         {lista.data?.aviso && <Aviso texto={lista.data.aviso} />}
+        {buscando && lista.data?.buscandoMas && <Aviso texto="Buscando más partidos de este equipo en otras fuentes…" />}
         {texto.trim().length > 0 && texto.trim().length < 3 && <span className={ui.sub}>Escribe al menos 3 letras.</span>}
 
         {lista.isPending && [0, 1, 2, 3].map((i) => <MatchCardSkeleton key={i} />)}
@@ -102,13 +135,13 @@ export function MatchesPage() {
           </div>
         )}
         {buscando
-          ? porEstado(partidos).map((g) => (
-              <section key={g.titulo} className={ui.grupoLiga} aria-label={g.titulo}>
-                <h2 className={ui.cabeceraLiga}>{g.titulo}</h2>
+          ? porEstado(partidos).map((g, i, grupos) => (
+              <GrupoDesplegable key={`${q}-${g.clave}`} titulo={g.titulo} detalle={g.detalle} cantidad={g.lista.length}
+                abiertoAlInicio={g.clave === 'proximos' || grupos.length === 1 || i === 0}>
                 {g.lista.map((p) => (
                   <MatchCard key={p.id} p={p} ligaFavorita={favoritas.has(p.liga.nombre)} />
                 ))}
-              </section>
+              </GrupoDesplegable>
             ))
           : porLiga(partidos, favoritas).map((grupo) => {
               const liga = grupo[0].liga

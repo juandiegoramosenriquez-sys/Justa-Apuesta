@@ -79,6 +79,8 @@ export interface ListaPartidos {
   partidos: PartidoResumen[]
   actualizadoEn: string | null
   aviso: string | null
+  /** La búsqueda sigue en otra fuente: se vuelve a pedir en unos segundos */
+  buscandoMas?: boolean
 }
 
 export interface Duelo {

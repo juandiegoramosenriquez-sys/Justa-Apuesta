@@ -104,7 +104,19 @@ public class EspnService {
 			new LigaEspn("uru.1", "Primera División de Uruguay", "Uruguay"),
 			new LigaEspn("ecu.1", "LigaPro Ecuador", "Ecuador"),
 			new LigaEspn("par.1", "Primera División de Paraguay", "Paraguay"),
-			new LigaEspn("bol.1", "División Profesional Bolivia", "Bolivia"));
+			new LigaEspn("bol.1", "División Profesional Bolivia", "Bolivia"),
+			// Copas nacionales
+			new LigaEspn("eng.fa", "FA Cup", "England"),
+			new LigaEspn("eng.league_cup", "Carabao Cup", "England"),
+			new LigaEspn("esp.copa_del_rey", "Copa del Rey", "Spain"),
+			new LigaEspn("ita.coppa_italia", "Coppa Italia", "Italy"),
+			new LigaEspn("ger.dfb_pokal", "Copa de Alemania", "Germany"),
+			new LigaEspn("fra.coupe_de_france", "Copa de Francia", "France"),
+			new LigaEspn("ned.cup", "Copa de Países Bajos", "Netherlands"),
+			new LigaEspn("por.taca.portugal", "Taça de Portugal", "Portugal"),
+			new LigaEspn("sco.tennents", "Copa de Escocia", "Scotland"),
+			new LigaEspn("arg.copa", "Copa Argentina", "Argentina"),
+			new LigaEspn("bra.copa_do_brazil", "Copa do Brasil", "Brazil"));
 
 	/** Estadísticas de un equipo en un partido (null si ESPN no las trae). */
 	record StatsEspn(Integer corners, Integer amarillas, Integer rojas, Integer rematesAPuerta, Integer rematesTotales,

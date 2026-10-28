@@ -46,7 +46,12 @@ public final class AnalisisDtos {
 	}
 
 	/** Lista con la hora de la última actualización y un aviso suave si el proveedor falló. */
-	public record ListaPartidosDto(List<PartidoResumenDto> partidos, Instant actualizadoEn, String aviso) {
+	/** @param buscandoMas la búsqueda sigue en otra fuente: la web vuelve a pedirla en unos segundos */
+	public record ListaPartidosDto(List<PartidoResumenDto> partidos, Instant actualizadoEn, String aviso,
+			boolean buscandoMas) {
+		public ListaPartidosDto(List<PartidoResumenDto> partidos, Instant actualizadoEn, String aviso) {
+			this(partidos, actualizadoEn, aviso, false);
+		}
 	}
 
 	public record GanadorDto(int h, int d, int a, String veredicto) {

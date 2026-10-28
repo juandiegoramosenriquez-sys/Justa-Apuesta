@@ -131,6 +131,13 @@ public class TheSportsDbService {
 	 *
 	 * @return true si se guardó algo nuevo
 	 */
+	/** true si esa búsqueda todavía no se hizo en TheSportsDB esta semana (buscarYBajar hará algo). */
+	public boolean pendiente(String texto) {
+		String clave = "tsdb:" + Normalizador.normalizar(texto);
+		return fuente.disponible() && busquedas.findById(clave)
+				.filter(b -> b.getBuscadoEn().isAfter(Instant.now().minus(Duration.ofDays(7)))).isEmpty();
+	}
+
 	public boolean buscarYBajar(String texto) {
 		String clave = "tsdb:" + Normalizador.normalizar(texto);
 		Instant ahora = Instant.now();

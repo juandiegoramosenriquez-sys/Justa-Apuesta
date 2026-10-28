@@ -32,12 +32,26 @@ public class PrecalculoService {
 	private final AnalisisService analisis;
 	private final PrecisionService precision;
 	private final PicksService picks;
+	private final pe.justaapuesta.partido.PartidoRepository partidoRepository;
 	private final AtomicBoolean enCurso = new AtomicBoolean(false);
 
 	/** Al arrancar se espera un poco: primero el servidor tiene que poder responder (el plan gratis tiene poca CPU). */
 	private static final long ESPERA_AL_ARRANCAR_MS = 45_000;
 	/** Pausa entre partido y partido, para dejar CPU libre a quien está usando la web. */
 	private static final long PAUSA_MS = 25;
+	/** Días de partidos por jugar que se dejan calculados para la búsqueda. */
+	private static final int DIAS_BUSQUEDA = 7;
+
+	private boolean precalcular(Partido p) {
+		try {
+			analisis.precalcular(p);
+			dormir(PAUSA_MS);
+			return true;
+		} catch (RuntimeException e) {
+			log.warn("Precálculo del partido {} falló: {}", p.getId(), e.getMessage());
+			return false;
+		}
+	}
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void alArrancar() {
@@ -69,20 +83,26 @@ public class PrecalculoService {
 			long inicio = System.currentTimeMillis();
 			int n = 0;
 			try {
+				java.util.Set<Long> hechos = new java.util.HashSet<>();
 				for (PartidosService.Pestana pestana : ORDEN) {
 					for (Partido p : partidos.partidosDe(pestana)) {
-						try {
-							analisis.precalcular(p);
+						if (hechos.add(p.getId()) && precalcular(p)) {
 							n++;
-							dormir(PAUSA_MS);
-						} catch (RuntimeException e) {
-							log.warn("Precálculo del partido {} falló: {}", p.getId(), e.getMessage());
 						}
 					}
 				}
 				// Con los análisis listos, las listas de cada pestaña quedan armadas en memoria
 				partidos.rehacerListas();
 				picks.rehacerPicks();
+				// Después, los de la próxima semana de todas las ligas: así buscarlos es instantáneo
+				java.time.Instant ahora = java.time.Instant.now();
+				for (Partido p : partidoRepository.entre(ahora, ahora.plus(java.time.Duration.ofDays(DIAS_BUSQUEDA)))) {
+					if (p.getEstado() != pe.justaapuesta.partido.EstadoPartido.JUGADO
+							&& p.getEstado() != pe.justaapuesta.partido.EstadoPartido.SUSPENDIDO
+							&& hechos.add(p.getId()) && precalcular(p)) {
+						n++;
+					}
+				}
 				log.info("Análisis precalculados: {} partidos en {} s", n, (System.currentTimeMillis() - inicio) / 1000);
 			} finally {
 				enCurso.set(false);

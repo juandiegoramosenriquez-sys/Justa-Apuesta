@@ -143,6 +143,37 @@
   border-radius: 4px;
   padding: 1px;
 }
+/* Grupo desplegable de la búsqueda (Próximos / Pasados) */
+.desplegable {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto);
+  text-align: left;
+}
+.desplegable[aria-expanded='true'] {
+  border-color: var(--borde-neon);
+}
+.desplegableTitulo {
+  flex: 1;
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  font-size: 15px;
+}
+.desplegableDetalle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--verde-texto);
+  background: var(--verde-fondo);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
 .paisLiga {
   font-weight: 500;
   color: var(--texto-apagado);

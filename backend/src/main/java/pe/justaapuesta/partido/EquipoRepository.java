@@ -20,4 +20,11 @@ public interface EquipoRepository extends JpaRepository<Equipo, Long> {
 			where e.nombreNormalizado like concat('%', :q, '%')
 			order by case when e.nombreNormalizado like concat(:q, '%') then 0 else 1 end, length(e.nombreNormalizado)""")
 	List<Equipo> buscar(@Param("q") String normalizado, Pageable pagina);
+
+	@Query("select e from Equipo e left join fetch e.liga where e.id in :ids")
+	List<Equipo> conLiga(@Param("ids") Collection<Long> ids);
+
+	/** id y nombre normalizado de todos los equipos (liviano). */
+	@Query("select e.id, e.nombreNormalizado from Equipo e")
+	List<Object[]> nombres();
 }

@@ -32,7 +32,6 @@ import pe.justaapuesta.comun.SolicitudInvalidaException;
 import pe.justaapuesta.config.JustaProperties;
 import pe.justaapuesta.historial.NombresEquipos;
 import pe.justaapuesta.historial.TheSportsDbService;
-import pe.justaapuesta.proveedor.ProveedorException;
 import pe.justaapuesta.sync.SincronizacionService;
 import pe.justaapuesta.sync.SyncEstado;
 import pe.justaapuesta.usuario.Modo;
@@ -49,6 +48,24 @@ public class PartidosService {
 	private static final int MAX_RESULTADOS = 40;
 	/** En la búsqueda: próximos y últimos partidos de cada equipo encontrado. */
 	private static final int POR_EQUIPO = 5;
+	/** En la búsqueda: últimos jugados de cada equipo (con si acertó o no). */
+	private static final int JUGADOS_POR_EQUIPO = 10;
+	/** Una búsqueda se recuerda 3 minutos: repetirla (o volver del detalle) es instantáneo. */
+	private static final Duration VIGENCIA_BUSQUEDA = Duration.ofMinutes(3);
+	private static final int MAX_BUSQUEDAS_GUARDADAS = 300;
+
+	/** Apodos y abreviaturas que no se parecen al nombre guardado. */
+	static final Map<String, String> APODOS = Map.ofEntries(
+			Map.entry("psg", "paris saint germain"), Map.entry("barca", "barcelona"),
+			Map.entry("atleti", "atletico madrid"), Map.entry("spurs", "tottenham"),
+			Map.entry("man city", "manchester city"), Map.entry("man utd", "manchester united"),
+			Map.entry("man u", "manchester united"), Map.entry("juve", "juventus"),
+			Map.entry("gladbach", "monchengladbach"), Map.entry("wolves", "wolverhampton"),
+			Map.entry("la u", "universitario"), Map.entry("cristal", "sporting cristal"),
+			Map.entry("boca", "boca juniors"), Map.entry("river", "river plate"),
+			Map.entry("chivas", "guadalajara"), Map.entry("verdao", "palmeiras"),
+			Map.entry("mengao", "flamengo"), Map.entry("timao", "corinthians"),
+			Map.entry("depor", "deportivo"), Map.entry("bvb", "dortmund"), Map.entry("leverkusen", "leverkusen"));
 	private static final int MAX_EQUIPOS = 4;
 	/** Lo que muestran las pestañas (independiente de lo que deja bajar cada proveedor). */
 	private static final int DIAS_JUGADOS = 3;
@@ -212,31 +229,66 @@ public class PartidosService {
 	 * así que aparece cualquier equipo que haya jugado o vaya a jugar en las fechas descargadas.
 	 * Ignora mayúsculas y tildes. No gasta consultas del proveedor.
 	 */
+	private record BusquedaGuardada(Instant hecha, ListaPartidosDto lista) {
+	}
+
+	private final Map<String, BusquedaGuardada> busquedas = new ConcurrentHashMap<>();
+	private final Set<String> buscandoAfuera = ConcurrentHashMap.newKeySet();
+
 	public ListaPartidosDto buscar(String texto, Long usuarioId) {
 		String q = Normalizador.normalizar(texto);
 		if (q.length() < 3) {
 			throw new SolicitudInvalidaException("Escribe al menos 3 letras.");
 		}
+		q = APODOS.getOrDefault(q, q);
+		Modo modo = analisis.modoDe(usuarioId);
+		Set<Long> favoritos = analisis.favoritosDe(usuarioId);
+		String clave = q + "|" + modo;
+		BusquedaGuardada g = busquedas.get(clave);
+		ListaPartidosDto r;
+		if (g != null && g.hecha().isAfter(Instant.now().minus(VIGENCIA_BUSQUEDA))) {
+			r = g.lista();
+		} else {
+			r = buscarSinMemoria(q, texto, modo);
+			if (!r.buscandoMas()) {
+				if (busquedas.size() > MAX_BUSQUEDAS_GUARDADAS) {
+					busquedas.clear();
+				}
+				busquedas.put(clave, new BusquedaGuardada(Instant.now(), r));
+			}
+		}
+		return new ListaPartidosDto(r.partidos().stream().map(x -> x.conFavorito(favoritos.contains(x.id()))).toList(),
+				r.actualizadoEn(), r.aviso(), r.buscandoMas());
+	}
+
+	private ListaPartidosDto buscarSinMemoria(String q, String texto, Modo modo) {
 		// "liverpool vs brentford": los partidos entre los dos
 		String[] lados = q.split("\\s+(?:vs|v|x|contra)\\s+|\\s+-\\s+", 2);
 		if (lados.length == 2 && lados[0].trim().length() >= 3 && lados[1].trim().length() >= 3) {
-			ListaPartidosDto entre = buscarPartido(lados[0].trim(), lados[1].trim(), usuarioId);
+			ListaPartidosDto entre = buscarPartido(lados[0].trim(), lados[1].trim(), modo);
 			if (!entre.partidos().isEmpty()) {
 				return entre;
 			}
 		}
-		String aviso = null;
 		List<Equipo> equipos = equiposRelevantes(q);
 		// Si no hay un equipo que se llame exactamente así y con historial, se busca en TheSportsDB (una vez cada
-		// 7 días por búsqueda) y se baja su liga: así aparece cualquier equipo del mundo
-		if (!hayExactoConHistorial(q, equipos) && ligaRepository.buscar(q).isEmpty()) {
-			try {
-				if (theSportsDb.buscarYBajar(texto)) {
-					equipos = equiposRelevantes(q);
+		// 7 días por búsqueda) y se baja su liga: así aparece cualquier equipo del mundo. Va aparte: se responde
+		// ya con lo que hay y la web vuelve a pedir en unos segundos
+		boolean buscandoMas = false;
+		if (!hayExactoConHistorial(q, equipos) && ligaRepository.buscar(q).isEmpty() && theSportsDb.pendiente(texto)
+				&& buscandoAfuera.add(q)) {
+			buscandoMas = true;
+			String buscado = q;
+			Thread.ofVirtual().name("buscar-afuera").start(() -> {
+				try {
+					theSportsDb.buscarYBajar(texto);
+				} catch (RuntimeException e) {
+					log.debug("TheSportsDB no pudo buscar '{}': {}", texto, e.getMessage());
+				} finally {
+					busquedas.keySet().removeIf(k -> k.startsWith(buscado + "|"));
+					buscandoAfuera.remove(buscado);
 				}
-			} catch (ProveedorException e) {
-				aviso = "No pudimos buscar ese equipo en este momento. Inténtalo en un rato.";
-			}
+			});
 		}
 
 		Instant ahora = Instant.now();
@@ -246,7 +298,7 @@ public class PartidosService {
 		for (Equipo e : conSusOtrasVersiones(equipos)) {
 			partidoRepository.proximosDeEquipo(e.getId(), ahora.minus(Duration.ofHours(3)), PageRequest.of(0, POR_EQUIPO))
 					.forEach(p -> porJugar.putIfAbsent(p.getId(), p));
-			partidoRepository.jugadosDeEquipo(e.getId(), ahora, PageRequest.of(0, POR_EQUIPO))
+			partidoRepository.jugadosDeEquipo(e.getId(), ahora, PageRequest.of(0, JUGADOS_POR_EQUIPO))
 					.forEach(p -> jugados.putIfAbsent(p.getId(), p));
 		}
 		// Búsqueda por liga ("premier", "liga 1"): sus partidos de estos días y de la próxima semana
@@ -263,12 +315,12 @@ public class PartidosService {
 		sinRepetidos(jugados.values()).stream().filter(p -> !porJugar.containsKey(p.getId()))
 				.sorted(Comparator.comparing(Partido::getFechaHoraUtc).reversed()).forEach(lista::add);
 		lista = lista.subList(0, Math.min(MAX_RESULTADOS, lista.size()));
-		return new ListaPartidosDto(analisis.resumenes(lista, usuarioId), actualizadoEn(),
-				aviso != null ? aviso : avisoSiDesactualizado());
+		return new ListaPartidosDto(analisis.resumenes(lista, modo, Set.of()), actualizadoEn(), avisoSiDesactualizado(),
+				buscandoMas);
 	}
 
 	/** Partidos entre dos equipos buscados juntos: los próximos y los últimos enfrentamientos. */
-	private ListaPartidosDto buscarPartido(String a, String b, Long usuarioId) {
+	private ListaPartidosDto buscarPartido(String a, String b, Modo modo) {
 		Set<Long> idsA = conSusOtrasVersiones(equiposRelevantes(a)).stream().map(Equipo::getId)
 				.collect(Collectors.toSet());
 		Set<Long> idsB = conSusOtrasVersiones(equiposRelevantes(b)).stream().map(Equipo::getId)
@@ -285,8 +337,8 @@ public class PartidosService {
 		List<Partido> lista = new ArrayList<>(todos.stream().filter(p -> !p.jugado())
 				.sorted(Comparator.comparing(Partido::getFechaHoraUtc)).toList());
 		todos.stream().filter(Partido::jugado).sorted(Comparator.comparing(Partido::getFechaHoraUtc).reversed())
-				.limit(POR_EQUIPO).forEach(lista::add);
-		return new ListaPartidosDto(analisis.resumenes(lista, usuarioId), actualizadoEn(), null);
+				.limit(JUGADOS_POR_EQUIPO).forEach(lista::add);
+		return new ListaPartidosDto(analisis.resumenes(lista, modo, Set.of()), actualizadoEn(), null);
 	}
 
 	/** El mismo club guardado por otras fuentes: mismo nombre (sin dudas) y mismo país. */
@@ -345,11 +397,18 @@ public class PartidosService {
 					.forEach(w -> equipoRepository.buscar(w, PageRequest.of(0, 40)).forEach(e -> porPalabra.putIfAbsent(e.getId(), e)));
 			encontrados = new ArrayList<>(porPalabra.values());
 		}
+		Set<Long> conError = new HashSet<>();
+		if (encontrados.isEmpty()) {
+			encontrados = conErrores(q); // "liverpol", "barcelno"
+			encontrados.forEach(e -> conError.add(e.getId()));
+		}
 		List<Equipo> candidatos = encontrados.stream()
 				.filter(e -> pideJuveniles || !NombresEquipos.esJuvenilOFemenino(e.getNombre()))
 				.toList();
 		Map<Long, Integer> puntaje = new LinkedHashMap<>();
-		candidatos.forEach(e -> puntaje.put(e.getId(), Math.max(NombresEquipos.relevancia(q, e.getNombreNormalizado()),
+		// Los encontrados con errores de escritura valen como "se parece" (2)
+		candidatos.forEach(e -> puntaje.put(e.getId(), Math.max(conError.contains(e.getId()) ? 2
+				: NombresEquipos.relevancia(q, e.getNombreNormalizado()),
 				Math.min(3, NombresEquipos.similitudConVariantes(q, e.getNombreNormalizado())))));
 		int mejor = puntaje.values().stream().max(Integer::compare).orElse(0);
 		List<Equipo> elegidos = candidatos.stream()
@@ -375,6 +434,63 @@ public class PartidosService {
 						.thenComparingInt(e -> e.getNombre().length()))
 				.limit(MAX_EQUIPOS)
 				.toList();
+	}
+
+	// ---------- Errores de escritura ----------
+
+	private volatile List<Object[]> nombres = List.of();
+	private volatile Instant nombresEn = Instant.EPOCH;
+
+	/** Equipos cuyo nombre se parece a lo escrito con 1 o 2 letras distintas (todas las palabras de 4+ letras). */
+	private List<Equipo> conErrores(String q) {
+		List<String> buscadas = Arrays.stream(q.split(" ")).filter(w -> w.length() >= 4).toList();
+		if (buscadas.isEmpty()) {
+			return List.of();
+		}
+		if (nombresEn.isBefore(Instant.now().minus(Duration.ofMinutes(30)))) {
+			nombres = equipoRepository.nombres();
+			nombresEn = Instant.now();
+		}
+		Map<Long, Integer> distancia = new LinkedHashMap<>();
+		for (Object[] fila : nombres) {
+			List<String> palabras = Arrays.stream(String.valueOf(fila[1]).split("[ |]")).filter(w -> !w.isEmpty()).toList();
+			int total = 0;
+			for (String b : buscadas) {
+				int mejor = palabras.stream().mapToInt(w -> distancia(b, w)).min().orElse(99);
+				if (mejor > (b.length() >= 7 ? 2 : 1)) {
+					total = -1;
+					break;
+				}
+				total += mejor;
+			}
+			if (total >= 0) {
+				distancia.put((Long) fila[0], total);
+			}
+		}
+		List<Long> ids = distancia.entrySet().stream().sorted(Map.Entry.comparingByValue()).limit(20)
+				.map(Map.Entry::getKey).toList();
+		return ids.isEmpty() ? List.of() : equipoRepository.conLiga(ids);
+	}
+
+	/** Cuántas letras hay que cambiar para pasar de una palabra a otra (Levenshtein). */
+	static int distancia(String a, String b) {
+		if (Math.abs(a.length() - b.length()) > 2) {
+			return 99;
+		}
+		int[] prev = new int[b.length() + 1], cur = new int[b.length() + 1];
+		for (int j = 0; j <= b.length(); j++) {
+			prev[j] = j;
+		}
+		for (int i = 1; i <= a.length(); i++) {
+			cur[0] = i;
+			for (int j = 1; j <= b.length(); j++) {
+				cur[j] = Math.min(Math.min(cur[j - 1] + 1, prev[j] + 1), prev[j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1));
+			}
+			int[] x = prev;
+			prev = cur;
+			cur = x;
+		}
+		return prev[b.length()];
 	}
 
 	/** Ya tenemos un equipo que se llama exactamente así, con historial y con algún partido por jugar. */
@@ -419,8 +535,9 @@ public class PartidosService {
 
 	/** Hora de la última sincronización correcta (para "Datos actualizados hace X horas"). */
 	public Instant actualizadoEn() {
+		// ESPN también cuenta: trae los partidos y resultados de casi todas las ligas
 		return List.of(SincronizacionService.HOY, SincronizacionService.DIARIA, SincronizacionService.HISTORIAL,
-				SincronizacionService.HISTORIAL_EXTRA).stream()
+				SincronizacionService.HISTORIAL_EXTRA, SincronizacionService.ESPN).stream()
 				.map(sync::ultima)
 				.flatMap(Optional::stream)
 				// Las fuentes de historial cuentan aunque alguna competición haya fallado, si trajeron partidos
